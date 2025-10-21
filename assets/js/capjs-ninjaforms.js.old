@@ -1,0 +1,235 @@
+(function() {
+  const siteKey = window.CapJS_Config?.siteKey;
+  if (!siteKey) {
+    console.warn('[CapJS] Site key manquante, le captcha ne sera pas chargé.');
+    return;
+  }
+
+  // Namespace global pour CapJS
+  window.CapJS = window.CapJS || {};
+
+  // Stockage des tokens par formulaire
+  const formTokens = new Map();
+
+  // Fonction pour récupérer le token d'un formulaire
+  window.CapJS.getToken = function(formEl) {
+    const formId = formEl?.id || formEl?.dataset?.formId;
+    return formTokens.get(formId) || null;
+  };
+
+  // Fonction pour vérifier si le captcha est validé
+  window.CapJS.isValidated = function(formEl) {
+    const widget = formEl?.querySelector('.capjs-widget');
+    if (!widget) return false;
+
+    // Vérifier si le widget CapJS a généré un token
+    const token = widget.dataset.capjsToken;
+    if (token) {
+      const formId = formEl?.id || formEl?.dataset?.formId;
+      formTokens.set(formId, token);
+      return true;
+    }
+
+    // Fallback : vérifier la checkbox (pour les widgets simples)
+    const checkbox = widget.querySelector('input[type="checkbox"]');
+    return !!(checkbox && checkbox.checked);
+  };
+
+  // Monte le widget CapJS dans un formulaire
+  function mountWidget(formEl) {
+    if (!formEl || formEl.dataset.capjsMounted === '1') {
+      console.log('[CapJS] Widget déjà monté ou formulaire invalide.');
+      return;
+    }
+
+    // Recherche du slot d'injection (priorité aux slots explicites)
+    let slot = formEl.querySelector('#capjs-widget-slot, .capjs-slot, [data-capjs-slot]');
+
+    // Sinon, chercher un conteneur de champs ou actions
+    if (!slot) {
+      slot = formEl.querySelector('.nf-form-fields-required, .nf-form-content');
+    }
+
+    // Dernier recours : avant le bouton de soumission
+    if (!slot) {
+      const submitBtn = formEl.querySelector('[type="submit"], .nf-form-submit');
+      if (submitBtn) {
+        slot = submitBtn.parentElement;
+      }
+    }
+
+    // Si toujours pas de slot, utiliser le formulaire lui-même
+    if (!slot) {
+      slot = formEl;
+    }
+
+    // Créer le conteneur du widget
+    const wrapper = document.createElement('div');
+    wrapper.className = 'capjs-widget nf-field-container';
+    wrapper.dataset.sitekey = siteKey;
+    wrapper.style.cssText = 'margin: 15px 0; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: #f9f9f9;';
+
+    // Widget simplifié (sera remplacé par le vrai widget.js de CapJS)
+    wrapper.innerHTML = `
+      <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
+        <input type="checkbox" class="capjs-checkbox" style="cursor:pointer;" />
+        <span>Je ne suis pas un robot</span>
+      </label>
+    `;
+
+    // Écouter le changement de la checkbox (simulé pour le développement)
+    const checkbox = wrapper.querySelector('.capjs-checkbox');
+    checkbox.addEventListener('change', function() {
+      if (this.checked) {
+        // Simuler la génération d'un token
+        const token = 'capjs_token_' + Math.random().toString(36).substr(2, 9);
+        wrapper.dataset.capjsToken = token;
+        console.log('[CapJS] Token généré:', token);
+      } else {
+        delete wrapper.dataset.capjsToken;
+      }
+    });
+
+    // Insérer le widget
+    if (slot === formEl || !slot.children.length) {
+      slot.appendChild(wrapper);
+    } else {
+      // Insérer avant le dernier élément (généralement le bouton submit)
+      const lastChild = slot.lastElementChild;
+      slot.insertBefore(wrapper, lastChild);
+    }
+
+    formEl.dataset.capjsMounted = '1';
+    console.log('[CapJS] Widget monté dans le formulaire', formEl);
+
+    // Si le vrai widget.js de CapJS est chargé, l'initialiser
+    if (window.CapJSWidget && typeof window.CapJSWidget.init === 'function') {
+      window.CapJSWidget.init(wrapper);
+    }
+  }
+
+  // Attache le guard de soumission via Backbone.Radio
+  function attachGuard(channel) {
+    console.log('[CapJS] Attachement du guard de soumission...');
+
+    // Écouter l'événement before:submit
+    channel.on('before:submit', function(formModel) {
+      const formId = formModel.get('id');
+      const formEl = document.querySelector(`#nf-form-${formId}-cont form`) ||
+                     document.querySelector(`.nf-form-${formId} form`);
+
+      if (!formEl) {
+        console.warn('[CapJS] Formulaire introuvable pour l\'ID:', formId);
+        return;
+      }
+
+      console.log('[CapJS] Vérification du captcha avant soumission du formulaire', formId);
+
+      if (!window.CapJS.isValidated(formEl)) {
+        // Annuler la soumission
+        formModel.trigger('submit:cancel');
+
+        // Afficher une erreur
+        channel.trigger('form:submit:response', formModel, {
+          errors: {
+            general: 'Veuillez valider le captcha avant d\'envoyer le formulaire.'
+          }
+        });
+
+        console.warn('[CapJS] Soumission bloquée : captcha non validé.');
+        return false;
+      }
+
+      // Ajouter le token dans les données du formulaire
+      const token = window.CapJS.getToken(formEl);
+      if (token) {
+        const extraData = formModel.get('extra') || {};
+        extraData['cap-token'] = token;
+        formModel.set('extra', extraData);
+        console.log('[CapJS] Token ajouté aux données du formulaire:', token);
+      }
+    });
+  }
+
+  // Observe le DOM pour détecter l'apparition de formulaires Ninja Forms
+  function waitForNinjaForms() {
+    console.log('[CapJS] Démarrage du MutationObserver pour détecter les formulaires...');
+
+    const observer = new MutationObserver(function(mutations) {
+      const forms = document.querySelectorAll('.ninja-forms-form form, .nf-form-cont form');
+
+      if (forms.length > 0) {
+        console.log('[CapJS] Formulaire(s) Ninja Forms détecté(s):', forms.length);
+        forms.forEach(mountWidget);
+        observer.disconnect();
+
+        // Attendre que Backbone soit prêt
+        setTimeout(bindToNinjaForms, 500);
+      }
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+
+    // Timeout de sécurité : arrêter l'observation après 10 secondes
+    setTimeout(function() {
+      observer.disconnect();
+      console.log('[CapJS] MutationObserver arrêté (timeout).');
+    }, 10000);
+  }
+
+  // Se connecte au système d'événements de Ninja Forms (Backbone.Radio)
+  function bindToNinjaForms() {
+    // Vérifier que Backbone et Radio sont disponibles
+    if (typeof Backbone === 'undefined' || !Backbone.Radio) {
+      console.warn('[CapJS] Backbone.Radio non disponible, nouvelle tentative dans 500ms...');
+      setTimeout(bindToNinjaForms, 500);
+      return;
+    }
+
+    const channel = Backbone.Radio.channel('forms');
+
+    // Écouter le rendu des vues (au cas où le formulaire se re-rend)
+    channel.on('render:view', function(view) {
+      if (view.el) {
+        const form = view.el.querySelector('form');
+        if (form) {
+          console.log('[CapJS] Événement render:view détecté, montage du widget...');
+          mountWidget(form);
+        }
+      }
+    });
+
+    // Attacher le guard de soumission
+    attachGuard(channel);
+
+    console.log('[CapJS] Hooks Ninja Forms actifs (render:view + before:submit).');
+  }
+
+  // Initialisation au chargement du DOM
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+  function init() {
+    console.log('[CapJS] Initialisation du plugin CapJS pour Ninja Forms...');
+
+    // Vérifier si des formulaires sont déjà présents
+    const forms = document.querySelectorAll('.ninja-forms-form form, .nf-form-cont form');
+
+    if (forms.length > 0) {
+      console.log('[CapJS] Formulaires déjà présents dans le DOM:', forms.length);
+      forms.forEach(mountWidget);
+
+      // Attendre un peu avant de connecter Backbone (il peut ne pas être prêt)
+      setTimeout(bindToNinjaForms, 500);
+    } else {
+      console.log('[CapJS] Aucun formulaire trouvé, démarrage du MutationObserver...');
+      waitForNinjaForms();
+    }
+  }
+})();
