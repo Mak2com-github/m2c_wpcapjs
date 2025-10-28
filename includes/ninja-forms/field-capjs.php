@@ -89,7 +89,7 @@ class NF_Fields_CapJS extends NF_Abstracts_Field {
     public function validate($field, $data) {
         // Vérifier la présence de la valeur (token)
         if (empty($field['value'])) {
-            return esc_html__('Please verify you\'re human, then submit again.', 'ninja-forms');
+            return esc_html__('Veuillez vérifier que vous êtes humain, puis soumettez à nouveau.', 'ninja-forms');
         }
 
         $token = sanitize_text_field($field['value']);
@@ -112,14 +112,14 @@ class NF_Fields_CapJS extends NF_Abstracts_Field {
         );
 
         if (is_wp_error($response)) {
-            return esc_html__('Verification error. Please try again.', 'ninja-forms');
+            return esc_html__('Erreur de vérification. Veuillez réessayer.', 'ninja-forms');
         }
 
         $body = wp_remote_retrieve_body($response);
         $result = json_decode($body, true);
 
         if (empty($result['success'])) {
-            return esc_html__('Captcha validation failed. Please try again.', 'ninja-forms');
+            return esc_html__('Échec de la validation du captcha. Veuillez réessayer.', 'ninja-forms');
         }
 
         return false; // No error

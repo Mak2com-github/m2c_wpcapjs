@@ -24,6 +24,15 @@ add_action('wp_enqueue_scripts', function() {
         'siteKey' => $site_key,
         'serverUrl' => $server_url,
     ));
+
+    // Script custom pour traduire le widget
+    wp_enqueue_script(
+        'capjs-custom',
+        plugin_dir_url(dirname(__FILE__)) . 'assets/js/capjs-custom.js',
+        array('capjs-widget'),
+        '1.1.2',
+        true
+    );
 });
 
 /**
@@ -56,6 +65,7 @@ add_action('nf_display_enqueue_scripts', function() {
                     <cap-widget
                         id="cap-widget-{{{ data.id }}}"
                         data-cap-api-endpoint="<?php echo esc_url(trailingslashit(get_option('m2c_capjs_server_url', 'https://cap.mak2com.fr')) . $site_key . '/'); ?>"
+                        data-cap-label="Je suis un humain"
                         style="display:block;margin:10px 0;">
                     </cap-widget>
                 </div>
