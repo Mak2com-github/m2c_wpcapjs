@@ -8,6 +8,7 @@
 
 - Intégration **native** du widget CapJS sur les formulaires WordPress
 - **Support Ninja Forms** avec champ personnalisé glisser-déposer
+- **Support Contact Form 7** avec validation automatique
 - Page d'administration pour configurer les clés CapJS (`site key` et `secret key`)
 - Validation serveur du `cap-token` via votre instance CapJS self-hosted
 - Code léger, sans tracking, 100 % open-source
@@ -42,9 +43,11 @@
 
 ---
 
-## 🎯 Utilisation avec Ninja Forms
+## 🎯 Utilisation
 
-### Ajouter le captcha à un formulaire
+### Avec Ninja Forms
+
+#### Ajouter le captcha à un formulaire
 
 1. Ouvrez le **constructeur de formulaire Ninja Forms**
 2. Dans la liste des champs, cherchez **"CapJS Captcha"** (section "Divers")
@@ -54,7 +57,7 @@
    - **Thème** : Clair ou Sombre
 5. Enregistrez le formulaire
 
-### Fonctionnement
+#### Fonctionnement
 
 - Le captcha s'affiche automatiquement à l'endroit où vous avez placé le champ
 - La soumission du formulaire est **bloquée** tant que l'utilisateur n'a pas validé le captcha
@@ -63,20 +66,75 @@
 
 ---
 
+### Avec Contact Form 7
+
+#### Ajouter le captcha à un formulaire
+
+1. Ouvrez le **formulaire Contact Form 7** que vous souhaitez protéger
+2. Dans l'éditeur de formulaire, ajoutez le shortcode :
+   ```
+   [capjs]
+   ```
+3. Placez-le où vous voulez qu'il apparaisse (généralement avant le bouton de soumission)
+4. Enregistrez le formulaire
+
+#### Options du shortcode
+
+Le shortcode `[capjs]` supporte plusieurs options :
+
+```
+[capjs theme:"light" label:"Veuillez valider le captcha"]
+```
+
+- **theme** : `light` (clair) ou `dark` (sombre) - Par défaut : `light`
+- **label** : Texte affiché au-dessus du captcha - Par défaut : "Captcha CapJS"
+
+#### Exemples
+
+```
+[capjs]
+[capjs theme:"dark"]
+[capjs label:"Prouvez que vous êtes humain"]
+[capjs theme:"dark" label:"Vérification de sécurité"]
+```
+
+#### Fonctionnement
+
+- Le captcha s'affiche automatiquement à l'emplacement du shortcode
+- La soumission du formulaire est **bloquée** tant que l'utilisateur n'a pas validé le captcha
+- Le token est automatiquement envoyé avec les données du formulaire
+- La validation côté serveur se fait automatiquement
+- En cas d'échec, un message d'erreur s'affiche : *"La validation du captcha a échoué. Veuillez réessayer."*
+
+---
+
 ## 🔒 Validation du captcha
 
 ### Côté client (JavaScript)
 
-- Le champ écoute l'événement `before:submit` de Ninja Forms
+**Ninja Forms :**
+- Le champ écoute l'événement `before:submit`
 - Si le captcha n'est pas validé, la soumission est annulée
 - Un message d'erreur s'affiche : *"Veuillez valider le captcha avant de soumettre le formulaire."*
 
+**Contact Form 7 :**
+- Le captcha écoute l'événement `wpcf7submit`
+- Le token est automatiquement ajouté au formulaire avant la soumission
+- En cas de validation échouée, le formulaire affiche l'erreur retournée par le serveur
+
 ### Côté serveur (PHP)
 
+**Ninja Forms :**
 - Le filtre `ninja_forms_submit_data` vérifie la présence d'un champ CapJS
 - Le token est extrait des données `extra` du formulaire
 - Une requête est envoyée au serveur CapJS pour valider le token
 - En cas d'échec, une erreur est ajoutée au formulaire
+
+**Contact Form 7 :**
+- Le filtre `wpcf7_validate` vérifie la présence du shortcode `[capjs]`
+- Le token `cap-token` est extrait des données POST
+- Une requête est envoyée au serveur CapJS pour valider le token
+- En cas d'échec, une erreur de validation est retournée et la soumission est bloquée
 
 ---
 
@@ -142,9 +200,10 @@ Ouvrez la console du navigateur (F12) pour voir les logs :
 ### Le widget ne s'affiche pas
 
 1. Vérifiez que la **Site Key** est configurée dans les réglages
-2. Vérifiez que **Ninja Forms** est bien installé et activé
-3. Vérifiez la console pour les erreurs JavaScript
-4. Videz le cache de WordPress
+2. Vérifiez que **Ninja Forms** ou **Contact Form 7** est bien installé et activé
+3. Pour Contact Form 7, vérifiez que le shortcode `[capjs]` est présent dans le formulaire
+4. Vérifiez la console pour les erreurs JavaScript
+5. Videz le cache de WordPress
 
 ### La validation échoue
 
@@ -159,19 +218,24 @@ Ouvrez la console du navigateur (F12) pour voir les logs :
 
 ```
 m2c_wpcapjs/
-├── m2c-capjs.php                           # Fichier principal du plugin
+├── m2c-wpcapjs.php                         # Fichier principal du plugin
 ├── includes/
 │   ├── admin.php                           # Page d'administration
 │   ├── enqueue.php                         # Chargement des assets
-│   └── ninja-forms/
-│       ├── field-capjs.php                 # Définition du champ Ninja Forms
-│       └── field-capjs-template.html       # Template underscore.js
+│   ├── validate.php                        # Validation serveur du captcha
+│   ├── ninja-forms/
+│   │   ├── field-capjs.php                 # Définition du champ Ninja Forms
+│   │   └── field-capjs-template.html       # Template underscore.js
+│   └── contact-form-7/
+│       └── capjs-cf7.php                   # Intégration Contact Form 7
 ├── assets/
 │   ├── css/
 │   │   └── admin.css                       # Styles de l'admin
 │   └── js/
+│       ├── capjs-custom.js                 # Logique générale du widget
+│       ├── capjs-cf7.js                    # Logique Contact Form 7
 │       └── fields/
-│           └── capjs-field.js              # Logique front-end du champ
+│           └── capjs-field.js              # Logique front-end Ninja Forms
 └── README.md                                # Ce fichier
 ```
 
@@ -180,10 +244,13 @@ m2c_wpcapjs/
 ## ❓ Questions fréquentes
 
 **Q : Puis-je avoir plusieurs captchas dans un même formulaire ?**
-R : Non, un seul champ CapJS par formulaire est nécessaire et suffisant.
+R : Non, un seul captcha CapJS par formulaire est nécessaire et suffisant.
 
 **Q : Le captcha fonctionne-t-il avec les champs conditionnels de Ninja Forms ?**
 R : Oui, le champ CapJS est compatible avec Ninja Forms Conditionals.
+
+**Q : Puis-je personnaliser l'apparence du captcha dans Contact Form 7 ?**
+R : Oui, utilisez les options `theme` et `label` dans le shortcode, ou ajoutez du CSS personnalisé ciblant `.capjs-widget-container`.
 
 **Q : Puis-je personnaliser le message d'erreur ?**
 R : Oui, modifiez les chaînes dans `field-capjs.php` et `capjs-field.js`.
@@ -192,7 +259,7 @@ R : Oui, modifiez les chaînes dans `field-capjs.php` et `capjs-field.js`.
 R : Oui, Ninja Forms utilise AJAX par défaut et le champ CapJS est totalement compatible.
 
 **Q : Le plugin fonctionne-t-il avec d'autres constructeurs de formulaires ?**
-R : Actuellement, seule l'intégration Ninja Forms est disponible. D'autres intégrations (Contact Form 7, WooCommerce) sont prévues.
+R : Actuellement, le plugin supporte **Ninja Forms** et **Contact Form 7**. D'autres intégrations (WooCommerce, Gravity Forms) sont prévues.
 
 **Q : Dois-je héberger moi-même CapJS ?**
 R : Oui, ce plugin nécessite une instance CapJS self-hosted accessible via HTTPS.

@@ -1,10 +1,30 @@
 (function() {
-  console.log('[CapJS Custom] Script de traduction chargé');
+  // Mode debug : mettre à true pour activer les logs
+  const DEBUG = false;
+
+  const log = function() {
+    if (DEBUG) {
+      console.log.apply(console, arguments);
+    }
+  };
+
+  log('[CapJS Custom] Script de traduction chargé');
+
+  // Set pour éviter de traiter plusieurs fois le même élément
+  const processedElements = new WeakSet();
 
   function replaceText(element) {
+    // Éviter de traiter plusieurs fois le même élément
+    if (processedElements.has(element)) {
+      return;
+    }
+    processedElements.add(element);
+
+    let hasReplaced = false;
+
     // Vérifier le Shadow DOM si présent
     if (element.shadowRoot) {
-      console.log('[CapJS Custom] Shadow DOM détecté');
+      log('[CapJS Custom] Shadow DOM détecté');
       const walker = document.createTreeWalker(
         element.shadowRoot,
         NodeFilter.SHOW_TEXT,
@@ -15,8 +35,8 @@
       let node;
       while (node = walker.nextNode()) {
         if (node.textContent.includes("I'm a human")) {
-          console.log('[CapJS Custom] Texte trouvé dans Shadow DOM, remplacement...');
           node.textContent = node.textContent.replace("I'm a human", "Je suis un humain");
+          hasReplaced = true;
         }
       }
     }
@@ -32,8 +52,8 @@
     let node;
     while (node = walker.nextNode()) {
       if (node.textContent.includes("I'm a human")) {
-        console.log('[CapJS Custom] Texte trouvé dans DOM normal, remplacement...');
         node.textContent = node.textContent.replace("I'm a human", "Je suis un humain");
+        hasReplaced = true;
       }
     }
 
@@ -41,14 +61,18 @@
     const labels = element.querySelectorAll('label, span, div');
     labels.forEach(function(label) {
       if (label.textContent && label.textContent.includes("I'm a human")) {
-        console.log('[CapJS Custom] Texte trouvé dans label/span, remplacement...');
         label.textContent = label.textContent.replace("I'm a human", "Je suis un humain");
+        hasReplaced = true;
       }
     });
+
+    if (hasReplaced) {
+      log('[CapJS Custom] Texte traduit avec succès');
+    }
   }
 
   function translateWidget() {
-    console.log('[CapJS Custom] Recherche de widgets CapJS...');
+    log('[CapJS Custom] Recherche de widgets CapJS...');
 
     // Utiliser MutationObserver pour détecter les changements
     const observer = new MutationObserver(function(mutations) {
@@ -56,13 +80,13 @@
         mutation.addedNodes.forEach(function(node) {
           if (node.nodeType === 1) { // Element node
             if (node.tagName === 'CAP-WIDGET' || node.matches('[class*="cap"], [id*="cap"]')) {
-              console.log('[CapJS Custom] Widget détecté via MutationObserver');
+              log('[CapJS Custom] Widget détecté via MutationObserver');
               setTimeout(function() { replaceText(node); }, 100);
             }
             // Chercher dans les enfants
             const widgets = node.querySelectorAll('cap-widget, [class*="cap"], [id*="cap"]');
             widgets.forEach(function(widget) {
-              console.log('[CapJS Custom] Widget enfant détecté');
+              log('[CapJS Custom] Widget enfant détecté');
               setTimeout(function() { replaceText(widget); }, 100);
             });
           }
@@ -79,24 +103,26 @@
     // Faire plusieurs passes pour s'assurer d'attraper le widget
     let attempts = 0;
     const maxAttempts = 20; // 10 secondes
+    let widgetsFound = false;
 
     function checkAndReplace() {
       attempts++;
-      console.log('[CapJS Custom] Tentative ' + attempts + '/' + maxAttempts);
+      log('[CapJS Custom] Tentative ' + attempts + '/' + maxAttempts);
 
       const elements = document.querySelectorAll('cap-widget, [class*="cap"], [id*="cap"], .capjs-widget-container');
 
       if (elements.length > 0) {
-        console.log('[CapJS Custom] ' + elements.length + ' éléments trouvés');
+        if (!widgetsFound) {
+          log('[CapJS Custom] ' + elements.length + ' widgets CapJS trouvés');
+          widgetsFound = true;
+        }
         elements.forEach(replaceText);
-      } else {
-        console.log('[CapJS Custom] Aucun élément trouvé');
       }
 
       if (attempts < maxAttempts) {
         setTimeout(checkAndReplace, 500);
       } else {
-        console.log('[CapJS Custom] Arrêt des tentatives');
+        log('[CapJS Custom] Arrêt des tentatives');
       }
     }
 
