@@ -113,19 +113,37 @@ Le shortcode `[capjs]` supporte plusieurs options :
 
 #### Formulaires protégés
 
-Lorsque WooCommerce est installé et activé, CapJS protège automatiquement les formulaires suivants :
+Lorsque WooCommerce est installé et activé, CapJS peut protéger les formulaires suivants :
 
-1. **Formulaire d'inscription** (`/my-account/register`)
-2. **Formulaire de connexion** (`/my-account/login`)
-3. **Formulaire de paiement/checkout** (`/checkout`)
-4. **Formulaire d'avis produit** (sur les pages produits)
+1. **Formulaire d'inscription** (`/my-account/register`) - **Activé par défaut**
+2. **Formulaire de connexion** (`/my-account/login`) - **Activé par défaut**
+3. **Formulaire de paiement/checkout** (`/checkout`) - **Désactivé par défaut**
+4. **Formulaire d'avis produit** (sur les pages produits) - **Désactivé par défaut**
 
-#### Activation automatique
+#### Configuration WooCommerce
 
-Dès que WooCommerce est détecté et que CapJS est configuré :
-- Le widget s'affiche automatiquement sur tous les formulaires mentionnés
-- Aucune configuration supplémentaire n'est nécessaire
-- La validation est effectuée automatiquement côté serveur
+Depuis la version **1.4.0**, vous pouvez activer/désactiver sélectivement la protection sur chaque formulaire WooCommerce.
+
+Allez dans **Réglages → CapJS** et configurez la section **"Protection WooCommerce"** :
+
+- ✅ **Formulaire de connexion** : Recommandé pour la sécurité des comptes utilisateurs
+- ✅ **Formulaire d'inscription** : Recommandé pour prévenir le spam et les inscriptions frauduleuses
+- ⚠️ **Formulaire de paiement (checkout)** : Désactivé par défaut pour éviter les problèmes de compatibilité avec les checkouts multi-étapes
+- ℹ️ **Avis produits** : Protection optionnelle contre les faux avis
+
+#### ⚠️ Compatibilité checkout multi-étapes
+
+Si vous utilisez un plugin de checkout multi-étapes (ex: WooCommerce Multistep Checkout, Checkout Manager, etc.), il est **fortement recommandé** de **désactiver la protection sur le checkout**.
+
+**Pourquoi ?**
+Le widget CapJS peut ne pas persister entre les différentes étapes du checkout, ce qui empêche la validation finale de la commande.
+
+**Solution :**
+1. Allez dans **Réglages → CapJS**
+2. Dans la section **Protection WooCommerce**, décochez **"Formulaire de paiement (checkout)"**
+3. Enregistrez les modifications
+
+Les formulaires de connexion et d'inscription resteront protégés, assurant la sécurité sans impacter le tunnel de paiement
 
 #### Fonctionnement
 
@@ -305,6 +323,27 @@ Ouvrez la console du navigateur (F12) pour voir les logs :
 2. Ouvrez la console développeur et activez le mode debug en modifiant `capjs-woocommerce.js` (ligne 10 : `var DEBUG = true;`)
 3. Vérifiez que les événements WooCommerce sont bien écoutés (`updated_checkout`, `wc_fragments_refreshed`)
 
+### Le checkout WooCommerce est bloqué avec un checkout multi-étapes
+
+**Symptômes :**
+- Le widget CapJS s'affiche sur la première étape du checkout
+- À l'étape finale, le formulaire est rejeté avec une erreur "Veuillez valider le captcha"
+- Le widget n'est pas visible sur l'étape finale
+
+**Solution :**
+1. Allez dans **Réglages → CapJS**
+2. Dans la section **Protection WooCommerce**, décochez **"Formulaire de paiement (checkout)"**
+3. Enregistrez les modifications
+4. Videz le cache WordPress si nécessaire
+5. Testez une nouvelle commande
+
+**Vérification :**
+- Le widget ne doit plus apparaître sur le checkout
+- La commande doit passer sans erreur de captcha
+- Les formulaires de connexion/inscription restent protégés
+
+**Note :** Si vous n'utilisez PAS de checkout multi-étapes et souhaitez protéger le checkout, vous pouvez réactiver cette option en toute sécurité.
+
 ---
 
 ## 📁 Structure des fichiers
@@ -362,7 +401,10 @@ R : Oui, modifiez les chaînes dans les fichiers d'intégration :
 R : Oui, Ninja Forms et WooCommerce utilisent AJAX et le plugin CapJS est totalement compatible avec ces systèmes.
 
 **Q : Puis-je désactiver CapJS sur certains formulaires WooCommerce ?**
-R : Actuellement, CapJS est actif sur tous les formulaires WooCommerce dès que le plugin est configuré. Pour désactiver sélectivement, vous devrez modifier le code dans `capjs-woocommerce.php`.
+R : Oui ! Depuis la version 1.4.0, vous pouvez activer/désactiver sélectivement chaque formulaire WooCommerce dans **Réglages → CapJS → Protection WooCommerce**. Cette fonctionnalité est particulièrement utile pour les sites utilisant des checkouts multi-étapes.
+
+**Q : Pourquoi la protection checkout est-elle désactivée par défaut ?**
+R : Les checkouts multi-étapes et certains plugins de paiement peuvent avoir des problèmes de compatibilité avec le widget CapJS. Pour éviter de bloquer les commandes par défaut, cette protection est optionnelle. Les formulaires de connexion et d'inscription restent protégés par défaut pour assurer la sécurité.
 
 **Q : Le plugin fonctionne-t-il avec d'autres constructeurs de formulaires ?**
 R : Actuellement, le plugin supporte **Ninja Forms**, **Contact Form 7** et **WooCommerce**. D'autres intégrations (Gravity Forms, Elementor Forms) sont prévues.

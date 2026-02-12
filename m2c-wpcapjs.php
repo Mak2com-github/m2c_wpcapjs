@@ -2,7 +2,7 @@
 /*
 Plugin Name: CapJS Integration by Mak2com
 Description: Intègre le captcha CapJS sur les formulaires WordPress (Ninja Forms, Contact Form 7, WooCommerce...).
-Version: 1.3.0
+Version: 1.4.0
 Author: Mak2com
 Author URI: https://mak2com.fr
 */
@@ -18,6 +18,40 @@ require_once M2C_CAPJS_DIR . 'admin/settings-page.php';
 require_once M2C_CAPJS_DIR . 'includes/enqueue.php';
 require_once M2C_CAPJS_DIR . 'includes/inject-widget.php';
 require_once M2C_CAPJS_DIR . 'includes/validate.php';
+
+/**
+ * Migration des paramètres lors des mises à jour
+ */
+add_action('plugins_loaded', function() {
+    $current_version = get_option('m2c_capjs_version', '0');
+    $new_version = '1.4.0';
+
+    // Migration pour la v1.4.0 : options WooCommerce granulaires
+    if (version_compare($current_version, '1.4.0', '<')) {
+        // Vérifier si CapJS est déjà configuré
+        $server_url = get_option('m2c_capjs_server_url');
+        $site_key = get_option('m2c_capjs_site_key');
+        $is_configured = !empty($server_url) && !empty($site_key);
+
+        // Si CapJS était déjà configuré, maintenir le comportement existant
+        // en activant login et register (ils étaient actifs avant)
+        if ($is_configured) {
+            // Activer login et register si pas déjà définis
+            if (get_option('m2c_capjs_woocommerce_login') === false) {
+                update_option('m2c_capjs_woocommerce_login', true);
+            }
+            if (get_option('m2c_capjs_woocommerce_register') === false) {
+                update_option('m2c_capjs_woocommerce_register', true);
+            }
+        }
+
+        // Checkout et reviews restent désactivés par défaut (valeurs par défaut)
+        // Pas besoin de les définir explicitement
+
+        // Mettre à jour la version
+        update_option('m2c_capjs_version', $new_version);
+    }
+}, 5); // Priorité 5 pour s'exécuter avant les autres hooks plugins_loaded
 
 /**
  * Charger l'intégration Ninja Forms au bon moment

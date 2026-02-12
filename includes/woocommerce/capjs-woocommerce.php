@@ -38,11 +38,11 @@ class M2C_WooCommerce_CapJS {
      * Initialiser les hooks WordPress/WooCommerce
      */
     private function init_hooks() {
-        // Ajouter le widget CapJS aux formulaires
-        add_action('woocommerce_register_form', array($this, 'display_capjs_field'), 10);
-        add_action('woocommerce_login_form', array($this, 'display_capjs_field'), 10);
-        add_action('woocommerce_review_before_comment_form', array($this, 'display_capjs_field'), 10);
-        add_action('woocommerce_after_checkout_billing_form', array($this, 'display_capjs_field'), 10);
+        // Ajouter le widget CapJS aux formulaires avec méthodes spécifiques
+        add_action('woocommerce_register_form', array($this, 'display_capjs_register'), 10);
+        add_action('woocommerce_login_form', array($this, 'display_capjs_login'), 10);
+        add_action('woocommerce_review_before_comment_form', array($this, 'display_capjs_review'), 10);
+        add_action('woocommerce_after_checkout_billing_form', array($this, 'display_capjs_checkout'), 10);
 
         // Validation côté serveur
         add_filter('woocommerce_registration_errors', array($this, 'validate_capjs_registration'), 10, 3);
@@ -85,13 +85,37 @@ class M2C_WooCommerce_CapJS {
     }
 
     /**
-     * Afficher le widget CapJS dans les formulaires
+     * Vérifier si la protection est activée sur le formulaire de connexion
      */
-    public function display_capjs_field() {
-        if (!$this->is_active()) {
-            return;
-        }
+    public function is_login_protected() {
+        return get_option('m2c_capjs_woocommerce_login', true);
+    }
 
+    /**
+     * Vérifier si la protection est activée sur le formulaire d'inscription
+     */
+    public function is_register_protected() {
+        return get_option('m2c_capjs_woocommerce_register', true);
+    }
+
+    /**
+     * Vérifier si la protection est activée sur le formulaire de paiement
+     */
+    public function is_checkout_protected() {
+        return get_option('m2c_capjs_woocommerce_checkout', false);
+    }
+
+    /**
+     * Vérifier si la protection est activée sur les avis produits
+     */
+    public function is_reviews_protected() {
+        return get_option('m2c_capjs_woocommerce_reviews', false);
+    }
+
+    /**
+     * Rendu du widget CapJS (méthode DRY)
+     */
+    private function render_widget() {
         $site_key = $this->get_site_key();
         $server_url = $this->get_server_url();
 
@@ -108,6 +132,46 @@ class M2C_WooCommerce_CapJS {
             </div>
         </p>
         <?php
+    }
+
+    /**
+     * Afficher le widget CapJS sur le formulaire de connexion
+     */
+    public function display_capjs_login() {
+        if (!$this->is_active() || !$this->is_login_protected()) {
+            return;
+        }
+        $this->render_widget();
+    }
+
+    /**
+     * Afficher le widget CapJS sur le formulaire d'inscription
+     */
+    public function display_capjs_register() {
+        if (!$this->is_active() || !$this->is_register_protected()) {
+            return;
+        }
+        $this->render_widget();
+    }
+
+    /**
+     * Afficher le widget CapJS sur le formulaire de paiement
+     */
+    public function display_capjs_checkout() {
+        if (!$this->is_active() || !$this->is_checkout_protected()) {
+            return;
+        }
+        $this->render_widget();
+    }
+
+    /**
+     * Afficher le widget CapJS sur les avis produits
+     */
+    public function display_capjs_review() {
+        if (!$this->is_active() || !$this->is_reviews_protected()) {
+            return;
+        }
+        $this->render_widget();
     }
 
     /**
@@ -158,7 +222,7 @@ class M2C_WooCommerce_CapJS {
      * Valider le captcha lors de l'inscription
      */
     public function validate_capjs_registration($errors, $username, $email) {
-        if (!$this->is_active()) {
+        if (!$this->is_active() || !$this->is_register_protected()) {
             return $errors;
         }
 
@@ -180,7 +244,7 @@ class M2C_WooCommerce_CapJS {
      * Valider le captcha lors de la connexion
      */
     public function validate_capjs_login($validation_error, $username, $password) {
-        if (!$this->is_active()) {
+        if (!$this->is_active() || !$this->is_login_protected()) {
             return $validation_error;
         }
 
@@ -206,7 +270,7 @@ class M2C_WooCommerce_CapJS {
             return $commentdata;
         }
 
-        if (!$this->is_active()) {
+        if (!$this->is_active() || !$this->is_reviews_protected()) {
             return $commentdata;
         }
 
@@ -225,9 +289,10 @@ class M2C_WooCommerce_CapJS {
 
     /**
      * Valider le captcha lors du paiement (checkout)
+     * FIX CRITIQUE: Vérifier si la protection checkout est activée avant de valider
      */
     public function validate_capjs_checkout($data, $errors) {
-        if (!$this->is_active()) {
+        if (!$this->is_active() || !$this->is_checkout_protected()) {
             return;
         }
 
