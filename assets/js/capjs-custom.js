@@ -1,138 +1,124 @@
 (function() {
-  // Mode debug : mettre à true pour activer les logs
-  const DEBUG = false;
+  var DEBUG = false;
 
-  const log = function() {
+  var log = function() {
     if (DEBUG) {
       console.log.apply(console, arguments);
     }
   };
 
-  log('[CapJS Custom] Script de traduction chargé');
+  var TRANSLATIONS = {
+    "I'm a human": "Je suis un humain",
+    "Verify you're human": "Vérifiez que vous êtes humain",
+    "Verify you are human": "Vérifiez que vous êtes humain",
+    "I am human": "Je suis un humain",
+    "Verification complete": "Vérification terminée",
+    "Verification failed": "Échec de la vérification"
+  };
 
-  // Set pour éviter de traiter plusieurs fois le même élément
-  const processedElements = new WeakSet();
-
-  function replaceText(element) {
-    // Éviter de traiter plusieurs fois le même élément
-    if (processedElements.has(element)) {
-      return;
-    }
-    processedElements.add(element);
-
-    let hasReplaced = false;
-
-    // Vérifier le Shadow DOM si présent
-    if (element.shadowRoot) {
-      log('[CapJS Custom] Shadow DOM détecté');
-      const walker = document.createTreeWalker(
-        element.shadowRoot,
-        NodeFilter.SHOW_TEXT,
-        null,
-        false
-      );
-
-      let node;
-      while (node = walker.nextNode()) {
-        if (node.textContent.includes("I'm a human")) {
-          node.textContent = node.textContent.replace("I'm a human", "Je suis un humain");
-          hasReplaced = true;
-        }
+  function replaceInTextNode(node) {
+    var text = node.textContent;
+    var changed = false;
+    for (var key in TRANSLATIONS) {
+      if (text.indexOf(key) !== -1) {
+        text = text.replace(key, TRANSLATIONS[key]);
+        changed = true;
       }
     }
+    if (changed) {
+      node.textContent = text;
+      log('[CapJS Custom] Texte traduit:', node.textContent);
+    }
+  }
 
-    // Vérifier le DOM normal
-    const walker = document.createTreeWalker(
-      element,
+  function translateTree(root) {
+    var walker = document.createTreeWalker(
+      root,
       NodeFilter.SHOW_TEXT,
       null,
       false
     );
-
-    let node;
+    var node;
     while (node = walker.nextNode()) {
-      if (node.textContent.includes("I'm a human")) {
-        node.textContent = node.textContent.replace("I'm a human", "Je suis un humain");
-        hasReplaced = true;
-      }
-    }
-
-    // Vérifier aussi les labels et spans spécifiquement
-    const labels = element.querySelectorAll('label, span, div');
-    labels.forEach(function(label) {
-      if (label.textContent && label.textContent.includes("I'm a human")) {
-        label.textContent = label.textContent.replace("I'm a human", "Je suis un humain");
-        hasReplaced = true;
-      }
-    });
-
-    if (hasReplaced) {
-      log('[CapJS Custom] Texte traduit avec succès');
+      replaceInTextNode(node);
     }
   }
 
-  function translateWidget() {
-    log('[CapJS Custom] Recherche de widgets CapJS...');
+  function translateElement(element) {
+    translateTree(element);
 
-    // Utiliser MutationObserver pour détecter les changements
-    const observer = new MutationObserver(function(mutations) {
-      mutations.forEach(function(mutation) {
-        mutation.addedNodes.forEach(function(node) {
-          if (node.nodeType === 1) { // Element node
-            if (node.tagName === 'CAP-WIDGET' || node.matches('[class*="cap"], [id*="cap"]')) {
-              log('[CapJS Custom] Widget détecté via MutationObserver');
-              setTimeout(function() { replaceText(node); }, 100);
-            }
-            // Chercher dans les enfants
-            const widgets = node.querySelectorAll('cap-widget, [class*="cap"], [id*="cap"]');
-            widgets.forEach(function(widget) {
-              log('[CapJS Custom] Widget enfant détecté');
-              setTimeout(function() { replaceText(widget); }, 100);
-            });
-          }
-        });
+    if (element.shadowRoot) {
+      translateTree(element.shadowRoot);
+
+      var shadowObserver = new MutationObserver(function() {
+        translateTree(element.shadowRoot);
       });
+      shadowObserver.observe(element.shadowRoot, {
+        childList: true,
+        subtree: true,
+        characterData: true
+      });
+    }
+  }
+
+  function translateAllWidgets() {
+    var widgets = document.querySelectorAll('cap-widget');
+    for (var i = 0; i < widgets.length; i++) {
+      translateElement(widgets[i]);
+    }
+  }
+
+  function init() {
+    log('[CapJS Custom] Initialisation de la traduction');
+
+    translateAllWidgets();
+
+    var observer = new MutationObserver(function(mutations) {
+      var needsTranslation = false;
+      for (var i = 0; i < mutations.length; i++) {
+        var mutation = mutations[i];
+        for (var j = 0; j < mutation.addedNodes.length; j++) {
+          var node = mutation.addedNodes[j];
+          if (node.nodeType === 1) {
+            if (node.tagName === 'CAP-WIDGET') {
+              translateElement(node);
+              needsTranslation = true;
+            }
+            var nested = node.querySelectorAll && node.querySelectorAll('cap-widget');
+            if (nested && nested.length > 0) {
+              for (var k = 0; k < nested.length; k++) {
+                translateElement(nested[k]);
+              }
+              needsTranslation = true;
+            }
+          }
+        }
+      }
+      if (!needsTranslation) {
+        translateAllWidgets();
+      }
     });
 
-    // Observer le body
     observer.observe(document.body, {
       childList: true,
       subtree: true
     });
 
-    // Faire plusieurs passes pour s'assurer d'attraper le widget
-    let attempts = 0;
-    const maxAttempts = 20; // 10 secondes
-    let widgetsFound = false;
-
-    function checkAndReplace() {
+    var attempts = 0;
+    var maxAttempts = 15;
+    function periodicCheck() {
       attempts++;
-      log('[CapJS Custom] Tentative ' + attempts + '/' + maxAttempts);
-
-      const elements = document.querySelectorAll('cap-widget, [class*="cap"], [id*="cap"], .capjs-widget-container');
-
-      if (elements.length > 0) {
-        if (!widgetsFound) {
-          log('[CapJS Custom] ' + elements.length + ' widgets CapJS trouvés');
-          widgetsFound = true;
-        }
-        elements.forEach(replaceText);
-      }
-
+      translateAllWidgets();
       if (attempts < maxAttempts) {
-        setTimeout(checkAndReplace, 500);
-      } else {
-        log('[CapJS Custom] Arrêt des tentatives');
+        setTimeout(periodicCheck, 500);
       }
     }
-
-    checkAndReplace();
+    periodicCheck();
   }
 
-  // Initialiser
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', translateWidget);
+    document.addEventListener('DOMContentLoaded', init);
   } else {
-    translateWidget();
+    init();
   }
 })();

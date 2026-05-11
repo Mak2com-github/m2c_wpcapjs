@@ -30,7 +30,7 @@ add_action('wp_enqueue_scripts', function() {
         'capjs-custom',
         plugin_dir_url(dirname(__FILE__)) . 'assets/js/capjs-custom.js',
         array('capjs-widget'),
-        '1.1.2',
+        '1.2.0',
         true
     );
 });
