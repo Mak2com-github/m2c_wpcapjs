@@ -9,8 +9,8 @@
 
   var TRANSLATIONS = {
     "I'm a human": "Je suis un humain",
-    "Verify you're human": "Vérifiez que vous êtes humain",
-    "Verify you are human": "Vérifiez que vous êtes humain",
+    "Verify you're human": "Je suis un humain",
+    "Verify you are human": "Je suis un humain",
     "I am human": "Je suis un humain",
     "Verification complete": "Vérification terminée",
     "Verification failed": "Échec de la vérification"
