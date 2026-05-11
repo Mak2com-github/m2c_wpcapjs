@@ -43,7 +43,7 @@ function m2c_capjs_settings_page() {
                 <tr>
                     <th scope="row">Clé du site (site key)</th>
                     <td><input type="text" name="m2c_capjs_site_key"
-                               value="<?php echo esc_attr(get_option('m2c_capjs_site_key', 'https://cap.mak2com.fr')); ?>"
+                               value="<?php echo esc_attr(get_option('m2c_capjs_site_key', '')); ?>"
                                style="width:400px;" /></td>
                 </tr>
                 <tr>

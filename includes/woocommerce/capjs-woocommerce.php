@@ -177,7 +177,7 @@ class M2C_WooCommerce_CapJS {
     /**
      * Valider le token CapJS auprès du serveur
      */
-    private function verify_token($token) {
+    private function verify_token($token, $fail_open = false) {
         if (empty($token) || !$this->is_active()) {
             return false;
         }
@@ -186,10 +186,8 @@ class M2C_WooCommerce_CapJS {
         $site_key = $this->get_site_key();
         $secret_key = $this->get_secret_key();
 
-        // Endpoint de vérification : /<site_key>/siteverify
         $endpoint = trailingslashit($server_url) . $site_key . '/siteverify';
 
-        // Préparer la requête
         $request = array(
             'headers' => array('Content-Type' => 'application/json'),
             'body' => wp_json_encode(array(
@@ -203,13 +201,13 @@ class M2C_WooCommerce_CapJS {
 
         if (is_wp_error($response)) {
             error_log('[CapJS WooCommerce] Erreur de connexion: ' . $response->get_error_message());
-            return false;
+            return $fail_open;
         }
 
         $response_code = wp_remote_retrieve_response_code($response);
         if (200 !== $response_code) {
             error_log('[CapJS WooCommerce] Erreur serveur (HTTP ' . $response_code . ')');
-            return false;
+            return $fail_open;
         }
 
         $response_body = wp_remote_retrieve_body($response);
@@ -303,7 +301,7 @@ class M2C_WooCommerce_CapJS {
             return;
         }
 
-        if (!$this->verify_token($token)) {
+        if (!$this->verify_token($token, true)) {
             $errors->add('capjs_error', __('La validation du captcha a échoué. Veuillez réessayer.', 'capjs-integration'));
         }
     }
@@ -325,7 +323,7 @@ class M2C_WooCommerce_CapJS {
             'capjs-woocommerce',
             M2C_CAPJS_URL . 'assets/js/capjs-woocommerce.js',
             array('jquery'),
-            '1.0.0',
+            '1.1.0',
             true
         );
 

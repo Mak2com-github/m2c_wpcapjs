@@ -37,58 +37,7 @@
     }
 
     /**
-     * Widget de développement (checkbox simple)
-     * À remplacer par le vrai widget CapJS
-     */
-    function createDevelopmentWidget($widget, $form) {
-        var siteKey = $widget.data('sitekey');
-        var theme = $widget.data('theme') || 'light';
-
-        // Créer une checkbox simple pour le dev
-        var $checkbox = $('<label style="display: flex; align-items: center; padding: 15px; border: 1px solid #ccc; border-radius: 4px; background: ' + (theme === 'dark' ? '#333' : '#f9f9f9') + '; color: ' + (theme === 'dark' ? '#fff' : '#000') + ';">' +
-            '<input type="checkbox" style="margin-right: 10px;" /> ' +
-            'Je ne suis pas un robot (CapJS - Dev Mode)' +
-            '</label>');
-
-        $widget.html($checkbox);
-
-        var $checkboxInput = $checkbox.find('input[type="checkbox"]');
-
-        // Quand la checkbox est cochée, générer un token
-        $checkboxInput.on('change', function() {
-            if ($(this).is(':checked')) {
-                var token = 'capjs_dev_token_' + Math.random().toString(36).substring(2);
-                $widget.data('capjs-token', token);
-                console.log('[CapJS CF7] Token généré:', token);
-            } else {
-                $widget.data('capjs-token', '');
-                console.log('[CapJS CF7] Token effacé');
-            }
-        });
-
-        // Intercepter la soumission du formulaire
-        $form.on('submit', function(e) {
-            var token = $widget.data('capjs-token') || '';
-
-            if (!token) {
-                e.preventDefault();
-                alert('Veuillez cocher la case "Je ne suis pas un robot" avant de soumettre le formulaire.');
-                return false;
-            }
-
-            // Ajouter le token dans le champ caché
-            var $tokenField = $form.find('input[name="_wpcf7_capjs_token"]');
-            if ($tokenField.length) {
-                $tokenField.val(token);
-                console.log('[CapJS CF7] Token ajouté à la soumission:', token);
-            }
-        });
-
-        console.log('[CapJS CF7] Widget initialisé (mode dev)');
-    }
-
-    /**
-     * Fonction d'initialisation du vrai widget CapJS
+     * Fonction d'initialisation du widget CapJS
      */
     function initRealCapJSWidget($widget, $form) {
         var siteKey = $widget.data('sitekey');
