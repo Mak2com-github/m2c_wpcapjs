@@ -81,23 +81,10 @@
 
 #### Options du shortcode
 
-Le shortcode `[capjs]` supporte plusieurs options :
+Le shortcode `[capjs]` supporte une option de thème :
 
-```
-[capjs theme:"light" label:"Veuillez valider le captcha"]
-```
-
-- **theme** : `light` (clair) ou `dark` (sombre) - Par défaut : `light`
-- **label** : Texte affiché au-dessus du captcha - Par défaut : "Captcha CapJS"
-
-#### Exemples
-
-```
-[capjs]
-[capjs theme:"dark"]
-[capjs label:"Prouvez que vous êtes humain"]
-[capjs theme:"dark" label:"Vérification de sécurité"]
-```
+- `[capjs]` - Thème clair (par défaut)
+- `[capjs dark]` - Thème sombre
 
 #### Fonctionnement
 
@@ -218,16 +205,16 @@ Pour tester l'intégration WooCommerce :
 ### Côté serveur (PHP)
 
 **Ninja Forms :**
-- Le filtre `ninja_forms_submit_data` vérifie la présence d'un champ CapJS
-- Le token est extrait des données `extra` du formulaire
+- La méthode `validate()` du champ CapJS est appelée par Ninja Forms lors du traitement de la soumission
+- Le token correspond à la valeur du champ (mise à jour par le JavaScript)
 - Une requête est envoyée au serveur CapJS pour valider le token
 - En cas d'échec, une erreur est ajoutée au formulaire
 
 **Contact Form 7 :**
-- Le filtre `wpcf7_validate` vérifie la présence du shortcode `[capjs]`
-- Le token `cap-token` est extrait des données POST
+- Le filtre `wpcf7_spam` vérifie la présence du shortcode `[capjs]`
+- Le token `cap-token` (ou le champ caché `_wpcf7_capjs_token`) est extrait des données POST
 - Une requête est envoyée au serveur CapJS pour valider le token
-- En cas d'échec, une erreur de validation est retournée et la soumission est bloquée
+- En cas d'échec, la soumission est marquée comme spam et bloquée
 
 **WooCommerce :**
 - Filtres de validation pour chaque type de formulaire :
@@ -259,31 +246,6 @@ Ajoutez du CSS personnalisé à votre thème :
     background: #fff;
 }
 ```
-
-### Intégrer votre widget CapJS personnalisé
-
-Pour intégrer votre widget CapJS complet :
-
-1. Assurez-vous que `widget.js` est chargé depuis votre serveur CapJS
-
-2. Dans `widget.js`, exposez une fonction d'initialisation :
-
-```javascript
-window.CapJSWidget = {
-    init: function(container) {
-        // container est l'élément .capjs-widget
-        // Initialisez votre widget ici
-
-        // Quand le captcha est validé, stockez le token :
-        container.dataset.capjsToken = 'le_token_généré';
-
-        // Déclenchez un événement change si nécessaire
-        container.dispatchEvent(new Event('capjs:validated'));
-    }
-};
-```
-
-3. Le champ appellera automatiquement `window.CapJSWidget.init()` lors du rendu
 
 ---
 
@@ -351,27 +313,22 @@ Ouvrez la console du navigateur (F12) pour voir les logs :
 ```
 m2c_wpcapjs/
 ├── m2c-wpcapjs.php                         # Fichier principal du plugin
+├── admin/
+│   └── settings-page.php                   # Page d'administration
 ├── includes/
-│   ├── admin.php                           # Page d'administration
-│   ├── enqueue.php                         # Chargement des assets
-│   ├── validate.php                        # Validation serveur du captcha
+│   ├── enqueue.php                         # Chargement des assets + template Ninja Forms
 │   ├── ninja-forms/
-│   │   ├── field-capjs.php                 # Définition du champ Ninja Forms
-│   │   └── field-capjs-template.html       # Template underscore.js
+│   │   └── field-capjs.php                 # Définition et validation du champ Ninja Forms
 │   ├── contact-form-7/
 │   │   ├── capjs-cf7.php                   # Intégration Contact Form 7
 │   │   └── service.php                     # Service CapJS pour CF7
 │   └── woocommerce/
 │       └── capjs-woocommerce.php           # Intégration WooCommerce
 ├── assets/
-│   ├── css/
-│   │   └── admin.css                       # Styles de l'admin
 │   └── js/
-│       ├── capjs-custom.js                 # Logique générale du widget
+│       ├── capjs-custom.js                 # Traduction du widget
 │       ├── capjs-cf7.js                    # Logique Contact Form 7
-│       ├── capjs-woocommerce.js            # Logique WooCommerce
-│       └── fields/
-│           └── capjs-field.js              # Logique front-end Ninja Forms
+│       └── capjs-woocommerce.js            # Logique WooCommerce
 └── README.md                                # Ce fichier
 ```
 
@@ -393,7 +350,7 @@ R : Oui, ajoutez du CSS personnalisé ciblant `.capjs-woocommerce cap-widget` da
 
 **Q : Puis-je personnaliser le message d'erreur ?**
 R : Oui, modifiez les chaînes dans les fichiers d'intégration :
-- Ninja Forms : `field-capjs.php` et `capjs-field.js`
+- Ninja Forms : `field-capjs.php` et le script inline dans `enqueue.php`
 - Contact Form 7 : `capjs-cf7.php`
 - WooCommerce : `capjs-woocommerce.php`
 

@@ -5,15 +5,13 @@
 (function($) {
     'use strict';
 
-    // Initialiser CapJS quand le DOM est prêt
-    $(document).ready(function() {
-        initCapJSWidgets();
-    });
+    var DEBUG = false;
 
-    // Réinitialiser après une soumission AJAX
-    $(document).on('wpcf7mailsent', function() {
-        initCapJSWidgets();
-    });
+    function debugLog(message, data) {
+        if (DEBUG) {
+            console.log('[CapJS CF7] ' + message, data || '');
+        }
+    }
 
     /**
      * Initialise tous les widgets CapJS dans la page
@@ -21,8 +19,6 @@
     function initCapJSWidgets() {
         $('.capjs-widget').each(function() {
             var $widget = $(this);
-            var $container = $widget.closest('.capjs-widget-container');
-            var $form = $widget.closest('form');
 
             // Skip si déjà initialisé
             if ($widget.data('capjs-initialized')) {
@@ -30,18 +26,15 @@
             }
 
             $widget.data('capjs-initialized', true);
-
-            // Utiliser le vrai widget CapJS
-            initRealCapJSWidget($widget, $form);
+            createCapWidget($widget);
         });
     }
 
     /**
-     * Fonction d'initialisation du widget CapJS
+     * Crée (ou recrée) l'élément cap-widget dans son conteneur
      */
-    function initRealCapJSWidget($widget, $form) {
+    function createCapWidget($widget) {
         var siteKey = $widget.data('sitekey');
-        var theme = $widget.data('theme') || 'light';
         var serverUrl = capjsCF7Config.serverUrl || '';
 
         if (!serverUrl || !siteKey) {
@@ -52,8 +45,7 @@
         // Construire l'API endpoint
         var apiEndpoint = serverUrl.replace(/\/$/, '') + '/' + siteKey + '/';
 
-        // Créer l'élément cap-widget
-        var widgetId = 'cap-widget-cf7-' + Math.random().toString(36).substr(2, 9);
+        var widgetId = 'cap-widget-cf7-' + Math.random().toString(36).slice(2, 11);
         var $capWidget = $('<cap-widget></cap-widget>')
             .attr('id', widgetId)
             .attr('data-cap-api-endpoint', apiEndpoint)
@@ -63,48 +55,55 @@
                 'margin': '10px 0'
             });
 
-        // Ajouter le widget au conteneur
         $widget.html($capWidget);
+        debugLog('Widget initialisé avec endpoint:', apiEndpoint);
+    }
 
-        // Mode debug (mettre à true pour activer les logs)
-        var DEBUG = false;
+    /**
+     * Réinitialise le widget d'un formulaire pour obtenir un nouveau token.
+     * Les tokens CapJS sont à usage unique : après toute tentative de
+     * soumission, le token courant est consommé côté serveur.
+     */
+    function resetCapJSWidget($wrap) {
+        $wrap.find('.capjs-widget').each(function() {
+            var $widget = $(this);
+            var widgetElement = $widget.find('cap-widget')[0];
+            if (!widgetElement) return;
 
-        if (DEBUG) {
-            console.log('[CapJS CF7] Widget initialisé avec endpoint:', apiEndpoint);
-        }
-
-        // Vérifier le token régulièrement
-        var widgetElement = $capWidget[0];
-        var checkTokenInterval = setInterval(function() {
-            if (widgetElement && widgetElement.token) {
-                $widget.data('capjs-token', widgetElement.token);
+            if (typeof widgetElement.reset === 'function') {
+                widgetElement.reset();
             } else {
-                $widget.data('capjs-token', '');
+                createCapWidget($widget);
             }
-        }, 500);
-
-        // Nettoyer l'interval si le widget est supprimé
-        $widget.on('remove', function() {
-            clearInterval(checkTokenInterval);
         });
 
-        // Mettre à jour le token avant la soumission (événement CF7)
-        document.addEventListener('wpcf7beforesubmit', function(event) {
-            var token = widgetElement && widgetElement.token ? widgetElement.token : '';
-
-            if (DEBUG) {
-                console.log('[CapJS CF7] Avant soumission, token:', token);
-            }
-
-            // Ajouter le token dans le champ caché
-            var $tokenField = $form.find('input[name="_wpcf7_capjs_token"]');
-            if ($tokenField.length) {
-                $tokenField.val(token);
-                if (DEBUG) {
-                    console.log('[CapJS CF7] Token ajouté au formulaire:', token);
-                }
-            }
-        }, false);
+        $wrap.find('input[name="_wpcf7_capjs_token"]').val('');
+        debugLog('Widget réinitialisé');
     }
+
+    $(document).ready(function() {
+        initCapJSWidgets();
+    });
+
+    // Copie le token dans le champ caché juste avant la soumission.
+    // Écouteur global unique : l'événement CF7 remonte sur le wrapper .wpcf7.
+    document.addEventListener('wpcf7beforesubmit', function(event) {
+        var $wrap = $(event.target);
+        var widgetElement = $wrap.find('cap-widget')[0];
+        if (!widgetElement) return;
+
+        var token = widgetElement.token || '';
+        $wrap.find('input[name="_wpcf7_capjs_token"]').val(token);
+        debugLog('Avant soumission, token:', token);
+    }, false);
+
+    // Après une tentative aboutie côté serveur (envoyée, refusée comme spam
+    // ou échec d'envoi), le token a été consommé : il faut le régénérer pour
+    // permettre une nouvelle soumission sans erreur "Captcha invalide".
+    ['wpcf7mailsent', 'wpcf7mailfailed', 'wpcf7spam'].forEach(function(eventName) {
+        document.addEventListener(eventName, function(event) {
+            resetCapJSWidget($(event.target));
+        }, false);
+    });
 
 })(jQuery);

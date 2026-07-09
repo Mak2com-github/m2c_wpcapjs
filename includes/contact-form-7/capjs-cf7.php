@@ -80,6 +80,12 @@ function m2c_capjs_add_hidden_fields($fields) {
         return $fields;
     }
 
+    // N'ajouter le champ caché qu'aux formulaires contenant le tag [capjs]
+    $contact_form = WPCF7_ContactForm::get_current();
+    if (!$contact_form || strpos($contact_form->prop('form'), '[capjs') === false) {
+        return $fields;
+    }
+
     return array_merge($fields, array(
         '_wpcf7_capjs_token' => '',
     ));
@@ -98,7 +104,6 @@ function m2c_capjs_verify_response($spam, $submission) {
     $service = M2C_WPCF7_CAPJS::get_instance();
 
     if (!$service->is_active()) {
-        error_log('[CapJS CF7] Service non actif');
         return $spam;
     }
 
@@ -108,7 +113,6 @@ function m2c_capjs_verify_response($spam, $submission) {
 
     if (strpos($form_content, '[capjs') === false) {
         // Pas de tag CapJS dans ce formulaire, on ne valide pas
-        error_log('[CapJS CF7] Pas de tag [capjs] dans le formulaire, validation ignorée');
         return $spam;
     }
 
@@ -162,7 +166,7 @@ function m2c_capjs_cf7_enqueue_scripts() {
         'capjs-cf7',
         M2C_CAPJS_URL . 'assets/js/capjs-cf7.js',
         array('jquery'),
-        '1.0.0',
+        '1.1.0',
         true
     );
 

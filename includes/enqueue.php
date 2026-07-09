@@ -5,10 +5,18 @@ if (!defined('ABSPATH')) exit;
  * Charger le widget CapJS principal
  */
 add_action('wp_enqueue_scripts', function() {
-    $server_url = esc_url_raw(get_option('m2c_capjs_server_url', 'https://cap.mak2com.fr'));
+    $server_url = esc_url_raw(get_option('m2c_capjs_server_url', ''));
     $site_key = get_option('m2c_capjs_site_key');
 
-    if (empty($server_url)) return;
+    // Ne rien charger si le plugin n'est pas configuré
+    if (empty($server_url) || empty($site_key)) return;
+
+    // Ne charger que si au moins une intégration peut afficher le widget
+    $needs_widget = class_exists('Ninja_Forms') || class_exists('WPCF7');
+    if (!$needs_widget && class_exists('WooCommerce')) {
+        $needs_widget = is_account_page() || is_checkout() || is_product();
+    }
+    if (!$needs_widget) return;
 
     // Charger le widget CapJS
     wp_enqueue_script(
@@ -64,7 +72,7 @@ add_action('nf_display_enqueue_scripts', function() {
                     <!-- Widget CapJS réel -->
                     <cap-widget
                         id="cap-widget-{{{ data.id }}}"
-                        data-cap-api-endpoint="<?php echo esc_url(trailingslashit(get_option('m2c_capjs_server_url', 'https://cap.mak2com.fr')) . $site_key . '/'); ?>"
+                        data-cap-api-endpoint="<?php echo esc_url(trailingslashit(get_option('m2c_capjs_server_url', '')) . $site_key . '/'); ?>"
                         data-cap-label="Je suis un humain"
                         style="display:block;margin:10px 0;">
                     </cap-widget>

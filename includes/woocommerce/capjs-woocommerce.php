@@ -120,7 +120,7 @@ class M2C_WooCommerce_CapJS {
         $server_url = $this->get_server_url();
 
         ?>
-        <p class="woocommerce-form-row woocommerce-form-row--wide form-row form-row-wide">
+        <div class="woocommerce-form-row woocommerce-form-row--wide form-row form-row-wide">
             <div class="capjs-widget-container capjs-woocommerce">
                 <cap-widget
                     id="cap-widget-wc-<?php echo esc_attr(uniqid()); ?>"
@@ -130,7 +130,7 @@ class M2C_WooCommerce_CapJS {
                 </cap-widget>
                 <input type="hidden" name="capjs_wc_token" class="capjs-wc-token" value="" />
             </div>
-        </p>
+        </div>
         <?php
     }
 
@@ -275,11 +275,19 @@ class M2C_WooCommerce_CapJS {
         $token = isset($_POST['capjs_wc_token']) ? sanitize_text_field($_POST['capjs_wc_token']) : '';
 
         if (empty($token)) {
-            wp_die(__('Veuillez valider le captcha avant de soumettre votre avis.', 'capjs-integration'));
+            wp_die(
+                __('Veuillez valider le captcha avant de soumettre votre avis.', 'capjs-integration'),
+                __('Erreur captcha', 'capjs-integration'),
+                array('response' => 403, 'back_link' => true)
+            );
         }
 
         if (!$this->verify_token($token)) {
-            wp_die(__('La validation du captcha a échoué. Veuillez réessayer.', 'capjs-integration'));
+            wp_die(
+                __('La validation du captcha a échoué. Veuillez réessayer.', 'capjs-integration'),
+                __('Erreur captcha', 'capjs-integration'),
+                array('response' => 403, 'back_link' => true)
+            );
         }
 
         return $commentdata;
@@ -323,7 +331,7 @@ class M2C_WooCommerce_CapJS {
             'capjs-woocommerce',
             M2C_CAPJS_URL . 'assets/js/capjs-woocommerce.js',
             array('jquery'),
-            '1.1.0',
+            '1.2.0',
             true
         );
 

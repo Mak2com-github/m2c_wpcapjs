@@ -52,6 +52,34 @@
         initCapJSWidgets();
     }
 
+    /**
+     * Force un nouveau token : les tokens CapJS sont à usage unique,
+     * donc après toute tentative de soumission (réussie ou non) le token
+     * courant est consommé côté serveur et doit être régénéré.
+     */
+    function resetCapJSTokens() {
+        $('.capjs-woocommerce').each(function() {
+            var $container = $(this);
+            var widgetElement = $container.find('cap-widget')[0];
+            if (!widgetElement) return;
+
+            if (typeof widgetElement.reset === 'function') {
+                widgetElement.reset();
+            } else {
+                // Recrée le widget pour repartir d'un état vierge
+                var $fresh = $('<cap-widget></cap-widget>');
+                $.each(widgetElement.attributes, function(_, attr) {
+                    $fresh.attr(attr.name, attr.value);
+                });
+                $(widgetElement).replaceWith($fresh);
+            }
+
+            $container.find('.capjs-wc-token').val('');
+        });
+        resetCapJSWidgets();
+        debugLog('Tokens CapJS réinitialisés');
+    }
+
     $(document).ready(function() {
         debugLog('Initialisation au chargement de la page');
         initCapJSWidgets();
@@ -65,6 +93,14 @@
     $(document.body).on('wc_fragments_refreshed', function() {
         debugLog('Fragments WooCommerce rafraîchis');
         resetCapJSWidgets();
+    });
+
+    // Après une erreur de checkout (validation, paiement refusé...), le token
+    // a déjà été consommé par la vérification serveur : sans réinitialisation,
+    // toutes les tentatives suivantes échoueraient avec "Captcha invalide".
+    $(document.body).on('checkout_error', function() {
+        debugLog('Erreur checkout détectée, réinitialisation du captcha');
+        resetCapJSTokens();
     });
 
     if (window.MutationObserver) {

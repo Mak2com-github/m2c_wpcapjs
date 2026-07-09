@@ -73,7 +73,7 @@ class NF_Fields_CapJS extends NF_Abstracts_Field {
      */
     public function localize_settings($settings, $form) {
         $settings['site_key'] = get_option('m2c_capjs_site_key', '');
-        $settings['server_url'] = get_option('m2c_capjs_server_url', 'https://cap.mak2com.fr');
+        $settings['server_url'] = get_option('m2c_capjs_server_url', '');
 
         // Si label invisible, masquer le label
         if ('invisible' === $settings['label_visibility']) {
@@ -87,15 +87,22 @@ class NF_Fields_CapJS extends NF_Abstracts_Field {
      * Validation du captcha
      */
     public function validate($field, $data) {
+        $server_url = esc_url_raw(get_option('m2c_capjs_server_url', ''));
+        $site_key = get_option('m2c_capjs_site_key');
+        $secret_key = get_option('m2c_capjs_secret_key');
+
+        // Plugin non configuré : le widget ne peut pas s'afficher,
+        // ne pas bloquer la soumission du formulaire
+        if (empty($server_url) || empty($site_key)) {
+            return false;
+        }
+
         // Vérifier la présence de la valeur (token)
         if (empty($field['value'])) {
             return esc_html__('Veuillez vérifier que vous êtes humain, puis soumettez à nouveau.', 'ninja-forms');
         }
 
         $token = sanitize_text_field($field['value']);
-        $server_url = esc_url_raw(get_option('m2c_capjs_server_url', 'https://cap.mak2com.fr'));
-        $site_key = get_option('m2c_capjs_site_key');
-        $secret_key = get_option('m2c_capjs_secret_key');
 
         // Valider le token auprès du serveur CapJS
         // Endpoint : https://<instance_url>/<site_key>/siteverify
