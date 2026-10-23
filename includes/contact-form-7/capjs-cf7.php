@@ -53,6 +53,8 @@ function m2c_capjs_form_tag_handler($tag) {
         return '';
     }
 
+    m2c_capjs_cf7_enqueue_scripts();
+
     $site_key = $service->get_site_key();
     $theme = isset($tag->options) && in_array('dark', $tag->options) ? 'dark' : 'light';
 
@@ -152,8 +154,6 @@ function m2c_capjs_verify_response($spam, $submission) {
 /**
  * Charger les scripts JavaScript pour Contact Form 7
  */
-add_action('wp_enqueue_scripts', 'm2c_capjs_cf7_enqueue_scripts', 20, 0);
-
 function m2c_capjs_cf7_enqueue_scripts() {
     $service = M2C_WPCF7_CAPJS::get_instance();
 
@@ -161,19 +161,27 @@ function m2c_capjs_cf7_enqueue_scripts() {
         return;
     }
 
+    if (wp_script_is('capjs-cf7', 'enqueued')) return;
+    m2c_capjs_enqueue_widget();
+
     // Enregistrer le script CapJS
     wp_enqueue_script(
         'capjs-cf7',
         M2C_CAPJS_URL . 'assets/js/capjs-cf7.js',
-        array('jquery'),
-        '1.1.0',
+        array('jquery', 'capjs-widget'),
+        '1.1.1',
         true
     );
 
     // Passer la configuration au JavaScript
+    $widget_strings = m2c_capjs_get_widget_strings();
     wp_localize_script('capjs-cf7', 'capjsCF7Config', array(
         'serverUrl' => $service->get_server_url(),
         'siteKey' => $service->get_site_key(),
+        'language' => $widget_strings['language'],
+        'humanLabel' => $widget_strings['humanLabel'],
+        'verificationComplete' => $widget_strings['verificationComplete'],
+        'verificationFailed' => $widget_strings['verificationFailed'],
     ));
 }
 

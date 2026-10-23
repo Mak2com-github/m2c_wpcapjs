@@ -2,21 +2,34 @@
 if (!defined('ABSPATH')) exit;
 
 /**
- * Charger le widget CapJS principal
+ * Contraste de la case CapJS (RGAA 3.3), via sa variable CSS publique.
+ * Le style est placé dans l'en-tête : les widgets peuvent être créés plus tard
+ * par les formulaires FSE ou AJAX. Aucune requête CSS supplémentaire.
  */
 add_action('wp_enqueue_scripts', function() {
+    if (empty(get_option('m2c_capjs_server_url', '')) || empty(get_option('m2c_capjs_site_key'))) return;
+    if (!class_exists('Ninja_Forms') && !class_exists('WPCF7') && !class_exists('WooCommerce')) return;
+
+    wp_register_style('m2c-capjs-accessibility', false, array(), '1.0.0');
+    wp_enqueue_style('m2c-capjs-accessibility');
+    wp_add_inline_style(
+        'm2c-capjs-accessibility',
+        'cap-widget { --cap-checkbox-border: 1px solid #767676; }'
+    );
+});
+
+/**
+ * Charger le widget uniquement lorsqu'une intégration rend un champ protégé.
+ * Les scripts restent en pied de page, y compris avec les modèles FSE.
+ */
+function m2c_capjs_enqueue_widget() {
+    if (wp_script_is('capjs-widget', 'enqueued')) return;
     $server_url = esc_url_raw(get_option('m2c_capjs_server_url', ''));
     $site_key = get_option('m2c_capjs_site_key');
+    $widget_strings = m2c_capjs_get_widget_strings();
 
     // Ne rien charger si le plugin n'est pas configuré
     if (empty($server_url) || empty($site_key)) return;
-
-    // Ne charger que si au moins une intégration peut afficher le widget
-    $needs_widget = class_exists('Ninja_Forms') || class_exists('WPCF7');
-    if (!$needs_widget && class_exists('WooCommerce')) {
-        $needs_widget = is_account_page() || is_checkout() || is_product();
-    }
-    if (!$needs_widget) return;
 
     // Charger le widget CapJS
     wp_enqueue_script(
@@ -38,16 +51,19 @@ add_action('wp_enqueue_scripts', function() {
         'capjs-custom',
         plugin_dir_url(dirname(__FILE__)) . 'assets/js/capjs-custom.js',
         array('capjs-widget'),
-        '1.2.0',
+        '1.2.2',
         true
     );
-});
+
+    wp_localize_script('capjs-custom', 'capjsCustomConfig', $widget_strings);
+}
 
 /**
  * Enqueue le template client pour Ninja Forms
  */
 add_action('nf_display_enqueue_scripts', function() {
     $site_key = get_option('m2c_capjs_site_key');
+    $widget_strings = m2c_capjs_get_widget_strings();
     ?>
     <!-- Template CapJS pour Ninja Forms -->
     <script id="tmpl-nf-field-capjs" type="text/template">
@@ -73,7 +89,10 @@ add_action('nf_display_enqueue_scripts', function() {
                     <cap-widget
                         id="cap-widget-{{{ data.id }}}"
                         data-cap-api-endpoint="<?php echo esc_url(trailingslashit(get_option('m2c_capjs_server_url', '')) . $site_key . '/'); ?>"
-                        data-cap-label="Je suis un humain"
+                        data-cap-lang="<?php echo esc_attr($widget_strings['language']); ?>"
+                        data-cap-i18n-initial-state="<?php echo esc_attr($widget_strings['humanLabel']); ?>"
+                        data-cap-i18n-solved-label="<?php echo esc_attr($widget_strings['verificationComplete']); ?>"
+                        data-cap-i18n-error-label="<?php echo esc_attr($widget_strings['verificationFailed']); ?>"
                         style="display:block;margin:10px 0;">
                     </cap-widget>
                 </div>

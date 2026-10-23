@@ -36,6 +36,10 @@
     function createCapWidget($widget) {
         var siteKey = $widget.data('sitekey');
         var serverUrl = capjsCF7Config.serverUrl || '';
+        var widgetLanguage = capjsCF7Config.language || '';
+        var humanLabel = capjsCF7Config.humanLabel || '';
+        var verificationComplete = capjsCF7Config.verificationComplete || '';
+        var verificationFailed = capjsCF7Config.verificationFailed || '';
 
         if (!serverUrl || !siteKey) {
             console.error('[CapJS CF7] Configuration manquante');
@@ -49,11 +53,23 @@
         var $capWidget = $('<cap-widget></cap-widget>')
             .attr('id', widgetId)
             .attr('data-cap-api-endpoint', apiEndpoint)
-            .attr('data-cap-label', 'Je suis un humain')
             .css({
                 'display': 'block',
                 'margin': '10px 0'
             });
+
+        if (humanLabel) {
+            $capWidget.attr('data-cap-i18n-initial-state', humanLabel);
+        }
+        if (widgetLanguage) {
+            $capWidget.attr('data-cap-lang', widgetLanguage);
+        }
+        if (verificationComplete) {
+            $capWidget.attr('data-cap-i18n-solved-label', verificationComplete);
+        }
+        if (verificationFailed) {
+            $capWidget.attr('data-cap-i18n-error-label', verificationFailed);
+        }
 
         $widget.html($capWidget);
         debugLog('Widget initialisé avec endpoint:', apiEndpoint);

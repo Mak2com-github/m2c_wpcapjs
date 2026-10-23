@@ -7,25 +7,27 @@
     }
   };
 
+  var config = window.capjsCustomConfig || {};
   var TRANSLATIONS = {
-    "I'm a human": "Je suis un humain",
-    "Verify you're human": "Je suis un humain",
-    "Verify you are human": "Je suis un humain",
-    "I am human": "Je suis un humain",
-    "Verification complete": "Vérification terminée",
-    "Verification failed": "Échec de la vérification"
+    "I'm a human": config.humanLabel || '',
+    "Verify you're human": config.humanLabel || '',
+    "Verify you are human": config.humanLabel || '',
+    "I am human": config.humanLabel || '',
+    "Verification complete": config.verificationComplete || '',
+    "Verification failed": config.verificationFailed || ''
   };
 
   function replaceInTextNode(node) {
     var text = node.textContent;
     var changed = false;
     for (var key in TRANSLATIONS) {
-      if (text.indexOf(key) !== -1) {
+      if (TRANSLATIONS[key] && text.indexOf(key) !== -1) {
         text = text.replace(key, TRANSLATIONS[key]);
         changed = true;
       }
     }
-    if (changed) {
+    // Une traduction identique ne doit pas relancer les MutationObserver.
+    if (changed && text !== node.textContent) {
       node.textContent = text;
       log('[CapJS Custom] Texte traduit:', node.textContent);
     }

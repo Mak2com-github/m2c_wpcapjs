@@ -50,8 +50,6 @@ class M2C_WooCommerce_CapJS {
         add_filter('preprocess_comment', array($this, 'validate_capjs_review'), 10, 1);
         add_action('woocommerce_after_checkout_validation', array($this, 'validate_capjs_checkout'), 10, 2);
 
-        // Charger les scripts JavaScript
-        add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'), 20);
     }
 
     /**
@@ -116,8 +114,10 @@ class M2C_WooCommerce_CapJS {
      * Rendu du widget CapJS (méthode DRY)
      */
     private function render_widget() {
+        $this->enqueue_scripts();
         $site_key = $this->get_site_key();
         $server_url = $this->get_server_url();
+        $widget_strings = m2c_capjs_get_widget_strings();
 
         ?>
         <div class="woocommerce-form-row woocommerce-form-row--wide form-row form-row-wide">
@@ -125,7 +125,10 @@ class M2C_WooCommerce_CapJS {
                 <cap-widget
                     id="cap-widget-wc-<?php echo esc_attr(uniqid()); ?>"
                     data-cap-api-endpoint="<?php echo esc_url(trailingslashit($server_url) . $site_key . '/'); ?>"
-                    data-cap-label="Je suis un humain"
+                    data-cap-lang="<?php echo esc_attr($widget_strings['language']); ?>"
+                    data-cap-i18n-initial-state="<?php echo esc_attr($widget_strings['humanLabel']); ?>"
+                    data-cap-i18n-solved-label="<?php echo esc_attr($widget_strings['verificationComplete']); ?>"
+                    data-cap-i18n-error-label="<?php echo esc_attr($widget_strings['verificationFailed']); ?>"
                     style="display:block;margin:10px 0;">
                 </cap-widget>
                 <input type="hidden" name="capjs_wc_token" class="capjs-wc-token" value="" />
@@ -322,15 +325,13 @@ class M2C_WooCommerce_CapJS {
             return;
         }
 
-        // Charger uniquement sur les pages WooCommerce pertinentes
-        if (!is_account_page() && !is_checkout() && !is_product()) {
-            return;
-        }
+        if (wp_script_is('capjs-woocommerce', 'enqueued')) return;
+        m2c_capjs_enqueue_widget();
 
         wp_enqueue_script(
             'capjs-woocommerce',
             M2C_CAPJS_URL . 'assets/js/capjs-woocommerce.js',
-            array('jquery'),
+            array('jquery', 'capjs-widget'),
             '1.2.0',
             true
         );

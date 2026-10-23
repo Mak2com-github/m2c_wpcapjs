@@ -72,6 +72,7 @@ class NF_Fields_CapJS extends NF_Abstracts_Field {
      * Localiser les paramètres pour le front-end
      */
     public function localize_settings($settings, $form) {
+        m2c_capjs_enqueue_widget();
         $settings['site_key'] = get_option('m2c_capjs_site_key', '');
         $settings['server_url'] = get_option('m2c_capjs_server_url', '');
 

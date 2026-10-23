@@ -2,9 +2,10 @@
 /*
 Plugin Name: CapJS Integration by Mak2com
 Description: Intègre le captcha CapJS sur les formulaires WordPress (Ninja Forms, Contact Form 7, WooCommerce...).
-Version: 1.4.1
+Version: 1.4.2
 Author: Mak2com
 Author URI: https://mak2com.fr
+Text Domain: capjs-integration
 */
 
 if (!defined('ABSPATH')) exit;
@@ -12,6 +13,52 @@ if (!defined('ABSPATH')) exit;
 // Define constants
 define('M2C_CAPJS_DIR', plugin_dir_path(__FILE__));
 define('M2C_CAPJS_URL', plugin_dir_url(__FILE__));
+
+/**
+ * Enregistrer un libellé CapJS dans WPML et le retourner dans la langue active.
+ * Sans WPML, les hooks conservent le libellé français historique.
+ */
+function m2c_capjs_translate_single_string($name, $default) {
+    do_action('wpml_register_single_string', 'capjs-integration', $name, $default);
+
+    return (string) apply_filters(
+        'wpml_translate_single_string',
+        $default,
+        'capjs-integration',
+        $name
+    );
+}
+
+/**
+ * Retourner le code de langue à deux lettres attendu par le composant CapJS.
+ */
+function m2c_capjs_get_widget_language() {
+    $language = apply_filters('wpml_current_language', null);
+
+    if (!is_string($language) || '' === $language) {
+        $language = determine_locale();
+    }
+
+    $language = strtolower(str_replace('_', '-', $language));
+
+    return preg_match('/^[a-z]{2}/', $language) ? substr($language, 0, 2) : 'fr';
+}
+
+/**
+ * Retourner les libellés du composant CapJS destinés aux visiteurs.
+ */
+function m2c_capjs_get_widget_strings() {
+    return array(
+        'language' => m2c_capjs_get_widget_language(),
+        'humanLabel' => m2c_capjs_translate_single_string('widget_human_label', 'Je suis un humain'),
+        'verificationComplete' => m2c_capjs_translate_single_string('verification_complete', 'Vérification terminée'),
+        'verificationFailed' => m2c_capjs_translate_single_string('verification_failed', 'Échec de la vérification'),
+    );
+}
+
+// Rendre les chaînes disponibles dans WPML dès un rechargement de l'administration,
+// sans imposer une première visite sur un formulaire public.
+add_action('init', 'm2c_capjs_get_widget_strings', 20);
 
 // Include files
 require_once M2C_CAPJS_DIR . 'admin/settings-page.php';

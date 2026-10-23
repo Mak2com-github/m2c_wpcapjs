@@ -14,6 +14,28 @@
 - Validation serveur du `cap-token` via votre instance CapJS self-hosted
 - Code léger, sans tracking, 100 % open-source
 - Compatible avec les formulaires AJAX
+- Libellés du widget traduisibles avec WPML, sans dépendance obligatoire à WPML
+- Scripts chargés uniquement lorsqu'une intégration prépare ou affiche un champ CapJS
+
+## Version 1.4.2 — adaptations intégrées
+
+Les adaptations développées pour EcoVance font désormais partie du code du plugin : langue du widget, traductions des trois libellés et chargement conditionnel pour Contact Form 7, Ninja Forms et WooCommerce. La bordure de case contrastée est également incluse. Version préparée localement, sans publication automatique.
+
+Dans **WPML → Traduction des chaînes**, utiliser le contexte `capjs-integration` et les noms existants `widget_human_label`, `verification_complete`, `verification_failed`. Ces identifiants sont conservés pour réutiliser les traductions déjà enregistrées. Un rechargement de l'administration suffit à enregistrer les chaînes. Sans WPML, les textes français historiques sont conservés et la langue technique du composant vient de la locale WordPress.
+
+Les scripts sont demandés au rendu du tag `[capjs]`, à la préparation du champ Ninja Forms ou au rendu d'un formulaire WooCommerce dont la protection est activée. Ils restent en pied de page avec leurs dépendances déclarées ; plusieurs widgets partagent les mêmes scripts. Une page sans champ protégé ne charge aucun script CapJS. Le petit style de contraste inline peut rester présent si une intégration est active et configurée ; il n'ajoute aucune requête CSS.
+
+Les réglages existants, la validation serveur et les réinitialisations des tokens sont conservés. Le traducteur de secours ignore une traduction identique à son texte source pour éviter une boucle de mutations.
+
+### Contrôles locaux
+
+```powershell
+php tests/regression.php
+node --test tests/translation.test.cjs
+php tests/wordpress-assets.php D:/Dev/ecovance
+```
+
+Le dernier argument désigne une copie locale de WordPress. Ce test utilise les vraies classes `WP_Scripts` sans charger `wp-config.php` ni démarrer WordPress. Les autres API, les traductions WPML et les réponses captcha sont simulées ; aucun accès à une base, envoi de formulaire ou appel réseau n'est effectué. Une recette sur le site cible avec ses extensions et son cache reste nécessaire avant diffusion.
 
 ---
 
