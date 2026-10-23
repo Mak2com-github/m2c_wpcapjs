@@ -52,6 +52,20 @@ class FixtureSubmission { public $logs=[]; function __construct(public $form) {}
 class Ninja_Forms {}
 class NF_Abstracts_Field { function __construct() {} }
 class WooCommerce {}
+// Mises à jour (includes/updater.php) : transients, appels HTTP et système de fichiers simulés.
+define('HOUR_IN_SECONDS',3600);
+$transients=$transient_ttls=$remote_get_calls=[]; $remote_get_response=null; $plugin_folder='m2c_wpcapjs'; $wp_filesystem=null;
+function wp_parse_url($url,$component=-1) { return parse_url($url,$component); }
+function home_url() { return 'https://www.Site.Example.test/blog'; }
+function get_site_transient($name) { global $transients; return $transients[$name]??false; }
+function set_site_transient($name,$value,$expiration=0) { global $transients,$transient_ttls; $transients[$name]=$value; $transient_ttls[$name]=$expiration; return true; }
+function delete_site_transient($name) { global $transients; unset($transients[$name]); return true; }
+function add_query_arg($args,$url) { return $url.(str_contains($url,'?')?'&':'?').http_build_query($args); }
+function wp_remote_get($url,$request=[]) { global $remote_get_calls,$remote_get_response; $remote_get_calls[]=$url; return $remote_get_response; }
+function get_bloginfo($show) { return '6.8.1'; }
+function plugin_basename($file) { global $plugin_folder; return $plugin_folder.'/'.basename($file); }
+function wp_kses_post($value) { return strip_tags($value,'<h4><ul><li><p>'); }
+class FixtureFilesystem { public $moves=[]; public $ok=true; function move($from,$to,$overwrite=false) { $this->moves[]=[$from,$to,$overwrite]; return $this->ok; } }
 
 add_action('wpml_register_single_string',function($context,$name,$value) use (&$registered_strings) {$registered_strings[$name]=[$context,$value];},10,3);
 require dirname(__DIR__).'/m2c-wpcapjs.php';
@@ -140,4 +154,84 @@ $remote_success=true;check($field->validate(['value'=>'fixture'],[])===false,'Ni
 $_POST=[];$errors=$wc->validate_capjs_registration(new WP_Error(),'','');check(isset($errors->errors['capjs_error']),'WooCommerce rejette un token absent');
 $_POST=['capjs_wc_token'=>'fixture'];$remote_success=false;$errors=$wc->validate_capjs_registration(new WP_Error(),'','');check(isset($errors->errors['capjs_error']),'WooCommerce rejette un token invalide');
 $remote_success=true;$errors=$wc->validate_capjs_registration(new WP_Error(),'','');check($errors->errors===[],'WooCommerce accepte un token validé');
+
+// Mises à jour depuis M2C Licences : sans clé de licence, réponses simulées, aucun accès réseau.
+$main=file_get_contents(dirname(__DIR__).'/m2c-wpcapjs.php'); $readme=file_get_contents(dirname(__DIR__).'/readme.txt');
+preg_match('/^Version:\s*(\S+)/m',$main,$header_version); preg_match('/^Stable tag:\s*(\S+)/m',$readme,$stable_tag);
+check($header_version[1]===M2C_CAPJS_VERSION&&$stable_tag[1]===M2C_CAPJS_VERSION,'version identique : en-tête, constante et Stable tag du readme.txt (M2C Licences refuse sinon l’archive)');
+check(str_contains($readme,"== Changelog ==\n\n= ".M2C_CAPJS_VERSION.' ='),'journal des modifications du readme.txt à jour');
+foreach(['pre_set_site_transient_update_plugins','plugins_api','upgrader_source_selection','upgrader_process_complete','load-update-core.php'] as $hook) check(!empty($hooks[$hook]),'crochet de mise à jour : '.$hook);
+check(m2c_capjs_update_url()==='https://licences.mak2com.fr/updates/','serveur de mises à jour par défaut');
+check(m2c_capjs_update_host()==='site.example.test','hôte transmis : minuscules, sans www ni chemin');
+
+$metadata=['name'=>'CapJS Integration by Mak2com','slug'=>'m2c_wpcapjs','version'=>'1.6.0','download_url'=>'https://licences.mak2com.fr/updates/?action=download&slug=m2c_wpcapjs&site=site.example.test','homepage'=>'https://mak2com.fr','requires'=>'6.0','tested'=>'6.8','requires_php'=>'8.0','last_updated'=>'2026-10-23 10:00:00','sections'=>['description'=>'<p>Captcha</p><script>x()</script>','changelog'=>'<h4>1.6.0</h4><ul><li>Test</li></ul>']];
+$answer=fn($data)=>['response'=>['code'=>200],'body'=>json_encode($data)];
+$remote_get_response=$answer($metadata);
+$remote=m2c_capjs_update_remote();
+check($remote['version']==='1.6.0','métadonnées lues'); check(count($remote_get_calls)===1,'un seul appel');
+parse_str(parse_url($remote_get_calls[0],PHP_URL_QUERY),$sent);
+check($sent==['action'=>'get_metadata','slug'=>'m2c_wpcapjs','site'=>'site.example.test','version'=>M2C_CAPJS_VERSION,'wp'=>'6.8.1','php'=>PHP_VERSION],'requête sans clé : produit, site, versions seulement');
+check(!str_contains($remote_get_calls[0],'license')&&!str_contains($remote_get_calls[0],'site_key')&&!str_contains($remote_get_calls[0],'secret'),'ni licence ni réglage CapJS transmis');
+check($transient_ttls[M2C_CAPJS_UPDATE_TRANSIENT]===6*HOUR_IN_SECONDS,'cache de 6 h');
+m2c_capjs_update_remote(); check(count($remote_get_calls)===1,'réponse en cache : pas de nouvel appel');
+m2c_capjs_update_remote(true); check(count($remote_get_calls)===2,'vérification forcée : cache ignoré');
+
+// Proposition de la mise à jour à WordPress.
+$plugin='m2c_wpcapjs/m2c-wpcapjs.php';
+$offered=m2c_capjs_update_inject((object)['response'=>[],'no_update'=>[]]);
+check($offered->response[$plugin]->new_version==='1.6.0'&&$offered->response[$plugin]->package===$metadata['download_url'],'mise à jour proposée avec son archive');
+check($offered->response[$plugin]->plugin===$plugin&&$offered->response[$plugin]->slug==='m2c_wpcapjs'&&$offered->response[$plugin]->requires_php==='8.0','élément conforme à WordPress');
+check(!isset($offered->no_update[$plugin]),'proposée : absente de no_update');
+check(isset(m2c_capjs_update_inject((object)[])->response[$plugin]),'transient sans tableaux : initialisés');
+check(m2c_capjs_update_inject('autre')==='autre','valeur inattendue inchangée');
+foreach(['1.5.0'=>'version identique','1.4.0'=>'version antérieure'] as $version=>$label) {
+ m2c_capjs_update_clear_cache(); $remote_get_response=$answer(['version'=>$version]+$metadata);
+ $current=m2c_capjs_update_inject((object)['response'=>[$plugin=>(object)[]],'no_update'=>[]]);
+ check(!isset($current->response[$plugin])&&isset($current->no_update[$plugin]),'aucune mise à jour proposée : '.$label);
+}
+m2c_capjs_update_clear_cache(); $remote_get_response=$answer($metadata);
+
+// Fenêtre « Voir les détails ».
+check(m2c_capjs_update_details('x','plugin_information',(object)['slug'=>'autre'])==='x','détails d’un autre produit ignorés');
+check(m2c_capjs_update_details('x','query_plugins',(object)['slug'=>'m2c_wpcapjs'])==='x','autre action ignorée');
+$details=m2c_capjs_update_details(false,'plugin_information',(object)['slug'=>'m2c_wpcapjs']);
+check($details->version==='1.6.0'&&$details->download_link===$metadata['download_url']&&str_contains($details->sections['changelog'],'<h4>1.6.0</h4>'),'détails de la version');
+check(!str_contains($details->sections['description'],'<script'),'sections assainies');
+
+// Réponses refusées : mauvaise version, archive ailleurs que sur le serveur, champs absents, erreur réseau ou HTTP.
+foreach(['version douteuse'=>['version'=>'1.6<script>']+$metadata,'archive hors serveur'=>['download_url'=>'https://exemple.test/m2c.zip']+$metadata,'schéma inattendu'=>['download_url'=>'ftp://licences.mak2com.fr/m2c.zip']+$metadata,'sans archive'=>['download_url'=>'']+$metadata,'sans version'=>['version'=>'']+$metadata] as $label=>$bad) {
+ m2c_capjs_update_clear_cache(); $remote_get_response=$answer($bad); check(m2c_capjs_update_remote()===null,'réponse refusée : '.$label);
+}
+foreach(['erreur réseau'=>new WP_Error(),'HTTP 403'=>['response'=>['code'=>403],'body'=>'{"error":"x"}'],'HTTP 404'=>['response'=>['code'=>404],'body'=>'{}'],'JSON invalide'=>['response'=>['code'=>200],'body'=>'<html>']] as $label=>$bad) {
+ m2c_capjs_update_clear_cache(); $remote_get_response=$bad; check(m2c_capjs_update_remote()===null,'sans mise à jour : '.$label);
+ check($transient_ttls[M2C_CAPJS_UPDATE_TRANSIENT]===HOUR_IN_SECONDS,'nouvel essai dans 1 h : '.$label);
+ $untouched=(object)['response'=>[],'no_update'=>[]]; check(m2c_capjs_update_inject($untouched)==(object)['response'=>[],'no_update'=>[]],'site inchangé : '.$label);
+}
+// Autre serveur (essais) : l'archive doit venir du même hôte.
+$update_url_override='http://127.0.0.1:8090/updates/'; add_filter('m2c_capjs_update_url',function($url) use (&$update_url_override){return $update_url_override;});
+m2c_capjs_update_clear_cache(); $remote_get_response=$answer(['download_url'=>'http://127.0.0.1:8090/updates/?action=download&slug=m2c_wpcapjs']+$metadata);
+check(m2c_capjs_update_remote()['version']==='1.6.0'&&str_starts_with($remote_get_calls[count($remote_get_calls)-1],'http://127.0.0.1:8090/updates/?'),'serveur d’essai accepté');
+m2c_capjs_update_clear_cache(); $remote_get_response=$answer($metadata); check(m2c_capjs_update_remote()===null,'archive d’un autre hôte que le serveur d’essai refusée');
+$update_url_override='https://licences.mak2com.fr/updates/'; m2c_capjs_update_clear_cache();
+
+// « Vérifier à nouveau » de WordPress et fin de mise à jour : cache vidé.
+$remote_get_response=$answer($metadata); m2c_capjs_update_remote(); check(get_site_transient(M2C_CAPJS_UPDATE_TRANSIENT)!==false,'cache rempli');
+do_action('load-update-core.php'); check(get_site_transient(M2C_CAPJS_UPDATE_TRANSIENT)!==false,'sans force-check : cache conservé');
+$_GET['force-check']='1'; do_action('load-update-core.php'); check(get_site_transient(M2C_CAPJS_UPDATE_TRANSIENT)===false,'force-check : cache vidé'); unset($_GET['force-check']);
+m2c_capjs_update_remote(); do_action('upgrader_process_complete'); check(get_site_transient(M2C_CAPJS_UPDATE_TRANSIENT)===false,'mise à jour terminée : cache vidé');
+
+// Dossier de l'archive (m2c_wpcapjs/) renommé comme le dossier réellement installé.
+$wp_filesystem=new FixtureFilesystem(); $upgrade='/wp/upgrade/m2c-abc';
+check(m2c_capjs_update_fix_source($upgrade.'/m2c_wpcapjs/',$upgrade,null,['plugin'=>$plugin])===$upgrade.'/m2c_wpcapjs/'&&$wp_filesystem->moves===[],'dossier déjà conforme : rien à faire');
+check(m2c_capjs_update_fix_source($upgrade.'/autre/',$upgrade,null,['plugin'=>'autre/autre.php'])===$upgrade.'/autre/'&&$wp_filesystem->moves===[],'autre extension ignorée');
+check(m2c_capjs_update_fix_source($upgrade.'/m2c_wpcapjs/',$upgrade,null,[])===$upgrade.'/m2c_wpcapjs/','installation sans extension ciblée ignorée');
+$plugin_folder='m2c_wpcapjs-main';
+check(m2c_capjs_update_fix_source($upgrade.'/m2c_wpcapjs/',$upgrade,null,['plugin'=>'m2c_wpcapjs-main/m2c-wpcapjs.php'])===$upgrade.'/m2c_wpcapjs-main/'&&$wp_filesystem->moves===[[$upgrade.'/m2c_wpcapjs/',$upgrade.'/m2c_wpcapjs-main/',true]],'dossier « -main » : archive renommée comme le dossier installé');
+$wp_filesystem->ok=false; check(m2c_capjs_update_fix_source($upgrade.'/m2c_wpcapjs/',$upgrade,null,['plugin'=>'m2c_wpcapjs-main/m2c-wpcapjs.php']) instanceof WP_Error,'renommage impossible : mise à jour interrompue (pas de seconde copie)');
+$wp_filesystem=null; $plugin_folder='m2c_wpcapjs';
+
+// Coupure complète des mises à jour par wp-config.php.
+define('M2C_CAPJS_DISABLE_UPDATES',true); $calls=count($remote_get_calls); m2c_capjs_update_clear_cache();
+check(m2c_capjs_updates_disabled()&&m2c_capjs_update_remote()===null&&count($remote_get_calls)===$calls,'M2C_CAPJS_DISABLE_UPDATES : aucun appel au serveur');
+check(m2c_capjs_update_inject((object)['response'=>[],'no_update'=>[]])==(object)['response'=>[],'no_update'=>[]],'mises à jour coupées : transient inchangé');
 echo "PASS : $count contrôles PHP ; aucun accès réseau/base.\n";

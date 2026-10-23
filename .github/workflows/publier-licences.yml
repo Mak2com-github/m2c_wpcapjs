@@ -1,0 +1,63 @@
+# À la publication d'une release, construit l'archive de l'extension (dossier m2c_wpcapjs/ à la racine) et
+# l'envoie au serveur de licences mak2com (M2C Licences), qui la propose aux sites. Aucune licence : l'extension
+# est servie à tous les sites. Secret requis : M2C_LICENCES_TOKEN (jeton de publication du produit,
+# fiche du produit sur https://licences.mak2com.fr).
+name: Publier sur M2C Licences
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag de la release à envoyer (ex. v1.5.0)
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  publier:
+    # Les préversions ne sont pas proposées aux sites.
+    if: ${{ github.event_name == 'workflow_dispatch' || !github.event.release.prerelease }}
+    runs-on: ubuntu-latest
+    env:
+      SLUG: m2c_wpcapjs
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      SERVER: https://licences.mak2com.fr
+    steps:
+      - name: Récupérer le code de la release
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
+
+      - name: Construire l'archive
+        run: |
+          # La version de l'en-tête doit être celle du tag (v1.5.0 ou 1.5.0) : sinon les sites ne verraient pas la bonne version.
+          version=$(sed -n 's/^Version:[[:space:]]*//p' m2c-wpcapjs.php | head -n 1 | tr -d '\r')
+          if [ "$version" != "${TAG#v}" ]; then
+            echo "::error::Version de m2c-wpcapjs.php ($version) différente du tag $TAG"
+            exit 1
+          fi
+          # Fichiers de développement exclus par .gitattributes (export-ignore).
+          git archive --format=zip --prefix="$SLUG/" -o "$SLUG.zip" HEAD
+          unzip -l "$SLUG.zip" | tail -n 3
+
+      - name: Envoyer à M2C Licences
+        env:
+          TOKEN: ${{ secrets.M2C_LICENCES_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::error::Secret M2C_LICENCES_TOKEN absent (Settings > Secrets and variables > Actions)"
+            exit 1
+          fi
+          code=$(curl -sS -o response.json -w '%{http_code}' -X POST \
+            -H "X-M2C-Publish-Token: $TOKEN" \
+            -F "package=@$SLUG.zip" \
+            "$SERVER/api/v1/releases")
+          cat response.json; echo
+          if [ "$code" != "201" ]; then
+            echo "::error::Envoi refusé par M2C Licences (HTTP $code)"
+            exit 1
+          fi
+          echo "Version publiée sur M2C Licences." >> "$GITHUB_STEP_SUMMARY"
