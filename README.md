@@ -17,6 +17,23 @@
 - Libellés du widget traduisibles avec WPML, sans dépendance obligatoire à WPML
 - Scripts chargés uniquement lorsqu'une intégration prépare ou affiche un champ CapJS
 
+## Mises à jour automatiques (1.5.0)
+
+L'extension reçoit ses nouvelles versions depuis **M2C Licences** (`https://licences.mak2com.fr/updates/`), comme les autres extensions de l'agence, **sans clé de licence** : elle n'est ni vendue ni limitée, le serveur ne sert qu'à diffuser les versions. WordPress affiche la mise à jour dans **Extensions** et **Tableau de bord → Mises à jour** ; le bouton « Activer les mises à jour automatiques » de la page Extensions fonctionne comme pour toute extension.
+
+- **Ce qui est transmis** au serveur, toutes les 6 h au plus : l'adresse du site (hôte), les versions de l'extension, de WordPress et de PHP. Jamais de réglage ni de clé CapJS.
+- **Aucun effet sur le site** si le serveur ne répond pas : l'extension continue de fonctionner, la vérification est simplement reportée.
+- **Coupure** : `define( 'M2C_CAPJS_DISABLE_UPDATES', true );` dans `wp-config.php` empêche tout appel au serveur. `M2C_CAPJS_UPDATE_URL` ou le filtre `m2c_capjs_update_url` désignent un autre serveur (essais).
+- **Dossier d'installation** : l'archive contient le dossier `m2c_wpcapjs/` ; il est renommé à la volée comme le dossier réellement installé (ex. `m2c_wpcapjs-main` après un téléchargement GitHub), pour que la mise à jour remplace l'extension au lieu d'en créer une copie.
+- **Première installation de la 1.5.0** : à faire à la main sur chaque site (téléverser la version, ou remplacer le dossier) ; les versions suivantes arrivent automatiquement.
+
+### Publier une version
+
+1. Mettre à jour `Version:` dans `m2c-wpcapjs.php`, `M2C_CAPJS_VERSION` (même fichier), `Stable tag` et le journal de `readme.txt` (un test le vérifie ; M2C Licences refuse une archive dont les numéros diffèrent).
+2. Fusionner, puis publier une **release GitHub** dont le tag est `v` suivi de la version (`v1.5.1`). L'action `.github/workflows/publier-licences.yml` construit le zip (dossier `m2c_wpcapjs/`, fichiers de développement exclus par `.gitattributes`) et l'envoie à M2C Licences, qui le propose aussitôt aux sites.
+3. Prérequis : produit « M2C CapJS » créé sur M2C Licences (identifiant `m2c_wpcapjs`, case « Extension sans licence » cochée) et secret `M2C_LICENCES_TOKEN` du dépôt = jeton de publication de ce produit.
+
+---
 ## Version 1.4.2 — adaptations intégrées
 
 Les adaptations développées pour EcoVance font désormais partie du code du plugin : langue du widget, traductions des trois libellés et chargement conditionnel pour Contact Form 7, Ninja Forms et WooCommerce. La bordure de case contrastée est également incluse. Version préparée localement, sans publication automatique.
@@ -52,7 +69,7 @@ Le dernier argument désigne une copie locale de WordPress. Ce test utilise les 
 
 1. Téléversez ou clonez le plugin dans le dossier :
    ```bash
-   /wp-content/plugins/m2c-capjs
+   /wp-content/plugins/m2c_wpcapjs
    ```
 
 2. Activez le plugin depuis l'interface d'administration WordPress
@@ -339,6 +356,7 @@ m2c_wpcapjs/
 │   └── settings-page.php                   # Page d'administration
 ├── includes/
 │   ├── enqueue.php                         # Chargement des assets + template Ninja Forms
+│   ├── updater.php                         # Mises à jour depuis M2C Licences (sans licence)
 │   ├── ninja-forms/
 │   │   └── field-capjs.php                 # Définition et validation du champ Ninja Forms
 │   ├── contact-form-7/
@@ -351,6 +369,7 @@ m2c_wpcapjs/
 │       ├── capjs-custom.js                 # Traduction du widget
 │       ├── capjs-cf7.js                    # Logique Contact Form 7
 │       └── capjs-woocommerce.js            # Logique WooCommerce
+├── readme.txt                              # Version stable et journal (lus par M2C Licences)
 └── README.md                                # Ce fichier
 ```
 
@@ -395,6 +414,7 @@ R : Oui, ce plugin nécessite une instance CapJS self-hosted accessible via HTTP
 
 ## 🔄 Mises à jour et support
 
+- **Mises à jour** : proposées dans WordPress par M2C Licences, sans clé de licence (section ci-dessus « Mises à jour automatiques »)
 - **Documentation CapJS** : [capjs.js.org](https://capjs.js.org)
 - **Support** : [Mak2com](https://mak2com.fr)
 - **GitHub** : Issues et contributions bienvenues

@@ -2,7 +2,7 @@
 /*
 Plugin Name: CapJS Integration by Mak2com
 Description: Intègre le captcha CapJS sur les formulaires WordPress (Ninja Forms, Contact Form 7, WooCommerce...).
-Version: 1.4.2
+Version: 1.5.0
 Author: Mak2com
 Author URI: https://mak2com.fr
 Text Domain: capjs-integration
@@ -11,6 +11,8 @@ Text Domain: capjs-integration
 if (!defined('ABSPATH')) exit;
 
 // Define constants
+define('M2C_CAPJS_VERSION', '1.5.0');
+define('M2C_CAPJS_FILE', __FILE__);
 define('M2C_CAPJS_DIR', plugin_dir_path(__FILE__));
 define('M2C_CAPJS_URL', plugin_dir_url(__FILE__));
 
@@ -63,6 +65,7 @@ add_action('init', 'm2c_capjs_get_widget_strings', 20);
 // Include files
 require_once M2C_CAPJS_DIR . 'admin/settings-page.php';
 require_once M2C_CAPJS_DIR . 'includes/enqueue.php';
+require_once M2C_CAPJS_DIR . 'includes/updater.php';
 
 /**
  * Migration des paramètres lors des mises à jour
