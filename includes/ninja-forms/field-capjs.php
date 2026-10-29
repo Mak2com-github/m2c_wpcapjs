@@ -92,9 +92,9 @@ class NF_Fields_CapJS extends NF_Abstracts_Field {
         $site_key = get_option('m2c_capjs_site_key');
         $secret_key = get_option('m2c_capjs_secret_key');
 
-        // Plugin non configuré : le widget ne peut pas s'afficher,
+        // Plugin non configuré ou sans licence : le widget ne peut pas s'afficher,
         // ne pas bloquer la soumission du formulaire
-        if (empty($server_url) || empty($site_key)) {
+        if (empty($server_url) || empty($site_key) || !m2c_capjs_license_runs()) {
             return false;
         }
 

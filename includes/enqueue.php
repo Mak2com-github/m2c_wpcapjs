@@ -8,6 +8,7 @@ if (!defined('ABSPATH')) exit;
  */
 add_action('wp_enqueue_scripts', function() {
     if (empty(get_option('m2c_capjs_server_url', '')) || empty(get_option('m2c_capjs_site_key'))) return;
+    if (!m2c_capjs_license_runs()) return;
     if (!class_exists('Ninja_Forms') && !class_exists('WPCF7') && !class_exists('WooCommerce')) return;
 
     wp_register_style('m2c-capjs-accessibility', false, array(), '1.0.0');
@@ -28,8 +29,8 @@ function m2c_capjs_enqueue_widget() {
     $site_key = get_option('m2c_capjs_site_key');
     $widget_strings = m2c_capjs_get_widget_strings();
 
-    // Ne rien charger si le plugin n'est pas configuré
-    if (empty($server_url) || empty($site_key)) return;
+    // Ne rien charger si le plugin n'est pas configuré ou sans licence
+    if (empty($server_url) || empty($site_key) || !m2c_capjs_license_runs()) return;
 
     // Charger le widget CapJS
     wp_enqueue_script(

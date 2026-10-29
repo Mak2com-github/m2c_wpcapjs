@@ -32,7 +32,7 @@ class M2C_WPCF7_CAPJS extends WPCF7_Service {
     public function is_active() {
         $server_url = get_option('m2c_capjs_server_url');
         $site_key = get_option('m2c_capjs_site_key');
-        return !empty($server_url) && !empty($site_key);
+        return !empty($server_url) && !empty($site_key) && m2c_capjs_license_runs();
     }
 
     public function get_categories() {

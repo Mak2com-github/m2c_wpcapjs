@@ -2,21 +2,29 @@
 Contributors: mak2com
 Requires at least: 6.0
 Requires PHP: 8.0
-Stable tag: 1.5.0
+Stable tag: 2.0.0
 
 Intègre le captcha CapJS (auto-hébergé) sur les formulaires WordPress : Ninja Forms, Contact Form 7 et WooCommerce.
 
 == Description ==
 
-CapJS Integration relie vos formulaires à votre propre instance CapJS, sans service tiers ni suivi. Réglages dans Réglages > CapJS Integration : adresse du serveur CapJS, clé du site et clé secrète.
+CapJS Integration relie vos formulaires à votre propre instance CapJS, sans service tiers ni suivi. Réglages dans Réglages > CapJS : licence, adresse du serveur CapJS, clé du site et clé secrète.
 
-Les mises à jour sont proposées par M2C Licences (licences.mak2com.fr) : l'extension n'est ni vendue ni limitée, aucune clé de licence n'est nécessaire. Le serveur de mises à jour reçoit l'adresse du site et les versions de l'extension, de WordPress et de PHP. Pour ne jamais le contacter : define( 'M2C_CAPJS_DISABLE_UPDATES', true ); dans wp-config.php.
+L'extension est fournie sous licence mak2com : la clé se génère sur licences.mak2com.fr et se saisit dans Réglages > CapJS. Elle donne droit au captcha et aux mises à jour automatiques. Fin de licence, ou absence de clé : le captcha est désactivé (il n'est plus affiché ni vérifié), les formulaires du site restent utilisables sans captcha, et la licence renouvelée le rétablit aussitôt. Développement et recette (.local, .test, dev., staging., preprod., recette.) fonctionnent sans clé.
+
+Le serveur de licences reçoit la clé, l'adresse du site et les versions de l'extension, de WordPress et de PHP, au plus une fois par semaine. Pour ne jamais le contacter pour les mises à jour : define( 'M2C_CAPJS_DISABLE_UPDATES', true ); dans wp-config.php.
 
 == Changelog ==
 
-= 1.5.0 =
-* Mises à jour proposées automatiquement par M2C Licences, sans clé de licence.
+= 2.0.0 =
+* Licence mak2com : clé à activer dans Réglages > CapJS (générée sur licences.mak2com.fr), vérifiée hors ligne et confirmée chaque semaine.
+* Mises à jour automatiques réservées aux sites sous licence valide.
+* Fin de licence ou absence de clé : le captcha est désactivé (formulaires utilisables sans captcha), avec un avertissement dans l'administration ; une licence renouvelée le rétablit aussitôt.
+* Site déjà configuré avant la 2.0.0 : délai de reprise de 30 jours pour saisir la clé, le captcha continue de fonctionner pendant ce délai.
 * Dossier de l'extension conservé à la mise à jour, même installée depuis une archive GitHub.
+
+= 1.5.0 =
+* Mises à jour proposées automatiquement par M2C Licences, sans clé de licence (remplacé par la licence en 2.0.0).
 
 = 1.4.2 =
 * Langue du widget et libellés traduisibles avec WPML.
