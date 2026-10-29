@@ -2,7 +2,7 @@
 Contributors: mak2com
 Requires at least: 6.0
 Requires PHP: 8.0
-Stable tag: 2.0.0
+Stable tag: 2.0.1
 
 Intègre le captcha CapJS (auto-hébergé) sur les formulaires WordPress : Ninja Forms, Contact Form 7 et WooCommerce.
 
@@ -15,6 +15,10 @@ L'extension est fournie sous licence mak2com : la clé se génère sur licences.
 Le serveur de licences reçoit la clé, l'adresse du site et les versions de l'extension, de WordPress et de PHP, au plus une fois par semaine. Pour ne jamais le contacter pour les mises à jour : define( 'M2C_CAPJS_DISABLE_UPDATES', true ); dans wp-config.php.
 
 == Changelog ==
+
+= 2.0.1 =
+* Administration redessinée aux couleurs de mak2com (même charte que M2C User Guide et M2C Cookies Banner) : en-tête, cartes, pastille d'état de la licence, boutons et cases à cocher ; libellés reliés à leurs champs.
+* Adresse du serveur CapJS préremplie : https://captcha.mak2com.fr (nouvelle instance de l'agence) ; sans effet sur un site où une adresse est déjà enregistrée.
 
 = 2.0.0 =
 * Licence mak2com : clé à activer dans Réglages > CapJS (générée sur licences.mak2com.fr), vérifiée hors ligne et confirmée chaque semaine.
