@@ -81,107 +81,127 @@ function m2c_capjs_license_section() {
         'removed'         => 'Clé retirée',
         'grace_ended'     => 'Délai de reprise terminé',
     );
-    $tones = array('valid' => 'success', 'dev' => 'success', 'grace' => 'warning', 'ended' => 'error', 'missing' => 'error', 'invalid' => 'error');
-    $tone = isset($tones[$public['state']]) ? $tones[$public['state']] : 'info';
+    // Ton (couleur) et libellé de la pastille selon l'état de la licence.
+    $badges = array(
+        'valid'   => array('success', 'Licence valide'),
+        'dev'     => array('success', 'Développement ou recette'),
+        'grace'   => array('warning', 'Délai de reprise'),
+        'ended'   => array('error', 'Licence terminée'),
+        'missing' => array('error', 'Aucune clé'),
+        'invalid' => array('error', 'Clé invalide'),
+    );
+    $badge = isset($badges[$public['state']]) ? $badges[$public['state']] : array('info', 'État inconnu');
+    $tone = $badge[0];
+    $action = esc_url(admin_url('admin-post.php'));
     ?>
-    <h2 id="m2c-capjs-licence">Licence</h2>
-    <?php if (isset($notices[$notice]) && '' !== $notices[$notice]): ?>
-        <div class="notice notice-success inline" role="status"><p><?php echo esc_html($notices[$notice]); ?></p></div>
-    <?php endif; ?>
-    <?php if (is_string($check) && '' !== $check): ?>
-        <div class="notice notice-info inline" role="status"><p><?php echo esc_html($check); ?></p></div>
-    <?php endif; ?>
-    <div class="notice notice-<?php echo esc_attr($tone); ?> inline"><p><?php echo esc_html($public['message']); ?></p></div>
+    <section class="m2c-capjs-card" id="m2c-capjs-licence" aria-labelledby="m2c-capjs-licence-title">
+        <div class="m2c-capjs-card__head">
+            <div>
+                <p class="m2c-capjs-eyebrow">Licence</p>
+                <h2 id="m2c-capjs-licence-title">Licence mak2com</h2>
+            </div>
+            <span class="m2c-capjs-badge m2c-capjs-badge--<?php echo esc_attr($tone); ?>"><?php echo esc_html($badge[1]); ?></span>
+        </div>
 
-    <table class="form-table" role="presentation">
-        <tr>
-            <th scope="row">Site</th>
-            <td><?php echo esc_html($public['host']); ?></td>
-        </tr>
-        <?php if ($public['reason']): ?>
-        <tr>
-            <th scope="row">Motif</th>
-            <td><?php echo esc_html(isset($reasons[$public['reason']]) ? $reasons[$public['reason']] : $public['reason']); ?></td>
-        </tr>
+        <?php if (isset($notices[$notice]) && '' !== $notices[$notice]): ?>
+            <div class="m2c-capjs-callout m2c-capjs-callout--success" role="status"><p><?php echo esc_html($notices[$notice]); ?></p></div>
         <?php endif; ?>
-        <?php if ($data): ?>
-        <tr>
-            <th scope="row">Numéro</th>
-            <td><?php echo esc_html($data['id']); ?></td>
-        </tr>
-        <tr>
-            <th scope="row">Client</th>
-            <td><?php echo esc_html($data['client']); ?></td>
-        </tr>
-        <tr>
-            <th scope="row">Domaines couverts</th>
-            <td><?php echo esc_html(implode(', ', $data['domains'])); ?> (sous-domaines compris)</td>
-        </tr>
-        <tr>
-            <th scope="row">Expiration</th>
-            <td><?php echo esc_html($data['expires'] ? wp_date('j F Y', strtotime($data['expires'])) : 'Aucune'); ?></td>
-        </tr>
+        <?php if (is_string($check) && '' !== $check): ?>
+            <div class="m2c-capjs-callout" role="status"><p><?php echo esc_html($check); ?></p></div>
         <?php endif; ?>
-        <?php if ($remote): ?>
-        <tr>
-            <th scope="row">Dernière vérification</th>
-            <td><?php echo esc_html(wp_date('j F Y à H:i', (int) $remote['checked_at']) . ' — ' . $remote['message']); ?></td>
-        </tr>
-        <?php endif; ?>
-        <?php if ($public['key_hint']): ?>
-        <tr>
-            <th scope="row">Clé</th>
-            <td><code><?php echo esc_html($public['key_hint']); ?></code><?php echo $public['from_constant'] ? ' (définie dans wp-config.php)' : ''; ?></td>
-        </tr>
-        <?php endif; ?>
-    </table>
+        <div class="m2c-capjs-callout m2c-capjs-callout--<?php echo esc_attr($tone); ?>"><p><?php echo esc_html($public['message']); ?></p></div>
 
-    <?php if ($public['from_constant']): ?>
-        <p>La clé est définie dans <code>wp-config.php</code> (constante <code>M2CCJ_LICENSE_KEY</code>).</p>
-    <?php else: ?>
-        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-            <input type="hidden" name="action" value="m2c_capjs_license">
-            <input type="hidden" name="op" value="activate">
-            <?php wp_nonce_field('m2c_capjs_license'); ?>
-            <table class="form-table" role="presentation">
-                <tr>
-                    <th scope="row"><label for="m2c-capjs-key">Clé fournie par mak2com</label></th>
-                    <td>
-                        <textarea id="m2c-capjs-key" name="key" rows="3" class="large-text code" spellcheck="false" autocomplete="off" required aria-describedby="m2c-capjs-key-help" placeholder="M2CCJ-…"></textarea>
-                        <p class="description" id="m2c-capjs-key-help">Inutile en développement ou en recette (adresses en .local, .test, dev., staging., preprod., recette.…). La clé se génère sur licences.mak2com.fr.</p>
-                    </td>
-                </tr>
-            </table>
-            <?php submit_button($public['key_hint'] ? 'Remplacer la clé' : 'Activer la licence', 'primary', 'submit', false); ?>
-        </form>
-    <?php endif; ?>
+        <dl class="m2c-capjs-details">
+            <div>
+                <dt>Site</dt>
+                <dd><?php echo esc_html($public['host']); ?></dd>
+            </div>
+            <?php if ($public['reason']): ?>
+            <div>
+                <dt>Motif</dt>
+                <dd><?php echo esc_html(isset($reasons[$public['reason']]) ? $reasons[$public['reason']] : $public['reason']); ?></dd>
+            </div>
+            <?php endif; ?>
+            <?php if ($data): ?>
+            <div>
+                <dt>Numéro</dt>
+                <dd><?php echo esc_html($data['id']); ?></dd>
+            </div>
+            <div>
+                <dt>Client</dt>
+                <dd><?php echo esc_html($data['client']); ?></dd>
+            </div>
+            <div>
+                <dt>Domaines couverts</dt>
+                <dd><?php echo esc_html(implode(', ', $data['domains'])); ?> (sous-domaines compris)</dd>
+            </div>
+            <div>
+                <dt>Expiration</dt>
+                <dd><?php echo esc_html($data['expires'] ? wp_date('j F Y', strtotime($data['expires'])) : 'Aucune'); ?></dd>
+            </div>
+            <?php endif; ?>
+            <?php if ($remote): ?>
+            <div>
+                <dt>Dernière vérification</dt>
+                <dd><?php echo esc_html(wp_date('j F Y à H:i', (int) $remote['checked_at']) . ' — ' . $remote['message']); ?></dd>
+            </div>
+            <?php endif; ?>
+            <?php if ($public['key_hint']): ?>
+            <div>
+                <dt>Clé</dt>
+                <dd><code><?php echo esc_html($public['key_hint']); ?></code><?php echo $public['from_constant'] ? ' (définie dans wp-config.php)' : ''; ?></dd>
+            </div>
+            <?php endif; ?>
+        </dl>
 
-    <div style="margin-top:1em">
-        <?php if ($data && '' !== m2c_capjs_license_server()): ?>
-        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline">
-            <input type="hidden" name="action" value="m2c_capjs_license">
-            <input type="hidden" name="op" value="check">
-            <?php wp_nonce_field('m2c_capjs_license'); ?>
-            <?php submit_button('Vérifier maintenant auprès de mak2com', 'secondary', 'submit', false); ?>
-        </form>
+        <?php if ($public['from_constant']): ?>
+            <p class="m2c-capjs-lead">La clé est définie dans <code>wp-config.php</code> (constante <code>M2CCJ_LICENSE_KEY</code>).</p>
+        <?php else: ?>
+            <form method="post" action="<?php echo $action; ?>">
+                <input type="hidden" name="action" value="m2c_capjs_license">
+                <input type="hidden" name="op" value="activate">
+                <?php wp_nonce_field('m2c_capjs_license'); ?>
+                <div class="m2c-capjs-field">
+                    <label for="m2c-capjs-key">Clé fournie par mak2com</label>
+                    <textarea id="m2c-capjs-key" name="key" rows="3" class="code" spellcheck="false" autocomplete="off" required aria-describedby="m2c-capjs-key-help" placeholder="M2CCJ-…"></textarea>
+                    <p class="m2c-capjs-help" id="m2c-capjs-key-help">Inutile en développement ou en recette (adresses en .local, .test, dev., staging., preprod., recette.…). La clé se génère sur licences.mak2com.fr.</p>
+                </div>
+                <div class="m2c-capjs-actions">
+                    <button type="submit" class="button button-primary"><?php echo esc_html($public['key_hint'] ? 'Remplacer la clé' : 'Activer la licence'); ?></button>
+                </div>
+            </form>
         <?php endif; ?>
-        <?php if ($public['key_hint'] && !$public['from_constant']): ?>
-        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline" onsubmit="return confirm('Retirer la clé ? Le captcha sera désactivé sur ce site (les formulaires resteront utilisables sans captcha).');">
-            <input type="hidden" name="action" value="m2c_capjs_license">
-            <input type="hidden" name="op" value="deactivate">
-            <?php wp_nonce_field('m2c_capjs_license'); ?>
-            <?php submit_button('Retirer la clé de ce site', 'delete', 'submit', false); ?>
-        </form>
-        <?php endif; ?>
-    </div>
 
-    <h3>Ce que couvre la licence</h3>
-    <ul class="ul-disc">
-        <li><strong>Licence valide</strong> : captcha et mises à jour automatiques.</li>
-        <li><strong>Fin de licence</strong> (expiration, suspension, résiliation, changement de prestataire) : <strong>le captcha est désactivé</strong> ; il n’est plus affiché ni vérifié et les formulaires restent utilisables sans captcha. La licence renouvelée ou réactivée le rétablit aussitôt.</li>
-        <li>Une indisponibilité du serveur de licences n’a <strong>aucun effet</strong> sur le site.</li>
-        <li><strong>Sans clé</strong> : aucun captcha, sauf en développement et recette (et pendant les 30 jours de reprise d’un site installé avant la licence).</li>
-    </ul>
-    <hr>
+        <?php if (($data && '' !== m2c_capjs_license_server()) || ($public['key_hint'] && !$public['from_constant'])): ?>
+        <div class="m2c-capjs-actions">
+            <?php if ($data && '' !== m2c_capjs_license_server()): ?>
+            <form method="post" action="<?php echo $action; ?>">
+                <input type="hidden" name="action" value="m2c_capjs_license">
+                <input type="hidden" name="op" value="check">
+                <?php wp_nonce_field('m2c_capjs_license'); ?>
+                <button type="submit" class="button">Vérifier maintenant auprès de mak2com</button>
+            </form>
+            <?php endif; ?>
+            <?php if ($public['key_hint'] && !$public['from_constant']): ?>
+            <form method="post" action="<?php echo $action; ?>" onsubmit="return confirm('Retirer la clé ? Le captcha sera désactivé sur ce site (les formulaires resteront utilisables sans captcha).');">
+                <input type="hidden" name="action" value="m2c_capjs_license">
+                <input type="hidden" name="op" value="deactivate">
+                <?php wp_nonce_field('m2c_capjs_license'); ?>
+                <button type="submit" class="button button--danger">Retirer la clé de ce site</button>
+            </form>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
+
+        <details class="m2c-capjs-more">
+            <summary>Ce que couvre la licence</summary>
+            <ul>
+                <li><strong>Licence valide</strong> : captcha et mises à jour automatiques.</li>
+                <li><strong>Fin de licence</strong> (expiration, suspension, résiliation, changement de prestataire) : <strong>le captcha est désactivé</strong> ; il n’est plus affiché ni vérifié et les formulaires restent utilisables sans captcha. La licence renouvelée ou réactivée le rétablit aussitôt.</li>
+                <li>Une indisponibilité du serveur de licences n’a <strong>aucun effet</strong> sur le site.</li>
+                <li><strong>Sans clé</strong> : aucun captcha, sauf en développement et recette (et pendant les 30 jours de reprise d’un site installé avant la licence).</li>
+            </ul>
+        </details>
+    </section>
     <?php
 }

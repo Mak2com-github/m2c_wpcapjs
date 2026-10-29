@@ -1,0 +1,135 @@
+/*
+ * M2C CapJS : administration aux couleurs de mak2com, même charte que M2C User Guide et M2C Cookies Banner.
+ * Orange toujours associé à du texte noir ; texte orange sur fond clair : #a6410d.
+ */
+.m2c-capjs {
+  --m2c-ink: #1d1d1b;
+  --m2c-orange: #ed7226;
+  --m2c-orange-dark: #a6410d;
+  --m2c-cream: #f4f2e9;
+  --m2c-muted: #5a5a5a;
+  --m2c-line: #e8e3d8;
+  --m2c-ok: #1e6b3a;
+  --m2c-warn: #8a4b00;
+  --m2c-error: #b32d2e;
+  max-width: 1180px;
+  color: var(--m2c-ink);
+  font-family: "DM Sans", "Segoe UI", Arial, sans-serif;
+  font-size: 14px;
+}
+.m2c-capjs *, .m2c-capjs *::before, .m2c-capjs *::after { box-sizing: border-box; }
+.m2c-capjs a { color: var(--m2c-orange-dark); text-underline-offset: .15em; }
+.m2c-capjs a:hover { color: var(--m2c-ink); }
+.m2c-capjs :focus-visible { outline: 3px solid var(--m2c-ink); outline-offset: 2px; box-shadow: 0 0 0 6px rgba(237, 114, 38, .45); }
+.m2c-capjs code { padding: .1em .4em; border-radius: 5px; background: var(--m2c-cream); color: var(--m2c-ink); font-size: .92em; overflow-wrap: anywhere; }
+.m2c-capjs .wp-header-end { visibility: hidden; margin: 0; }
+
+/* En-tête */
+.m2c-capjs-hero {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  margin-top: 20px;
+  padding: clamp(24px, 4vw, 44px);
+  min-height: 200px;
+  background: var(--m2c-ink);
+  color: var(--m2c-cream);
+  border-radius: 24px;
+}
+.m2c-capjs-hero > div { position: relative; z-index: 1; }
+.m2c-capjs-brand { display: inline-block; margin-bottom: 22px; font-size: 27px; line-height: 1; font-weight: 850; letter-spacing: -.075em; }
+.m2c-capjs-brand span, .m2c-capjs-hero-mark span { color: var(--m2c-orange); }
+.m2c-capjs-brand small { color: #b9b5aa; font-size: 14px; font-weight: 500; letter-spacing: 0; }
+.m2c-capjs-eyebrow { margin: 0; color: var(--m2c-orange-dark); font-size: 11px; font-weight: 800; letter-spacing: .17em; line-height: 1.5; text-transform: uppercase; }
+.m2c-capjs-hero .m2c-capjs-eyebrow { margin: 0 0 10px; color: var(--m2c-orange); }
+.m2c-capjs-hero h1 { margin: 0 0 10px; padding: 0; color: #fff; font-size: clamp(30px, 4vw, 46px); font-weight: 800; line-height: 1.05; letter-spacing: -.045em; }
+.m2c-capjs-hero p:last-child { margin: 0; color: #d8d4ca; font-size: 16px; }
+.m2c-capjs-hero-mark { position: absolute; right: -10px; bottom: -62px; color: rgba(244, 242, 233, .12); font-size: clamp(140px, 19vw, 280px); font-weight: 900; line-height: .9; letter-spacing: -.12em; pointer-events: none; }
+.m2c-capjs-hero-mark span { color: rgba(237, 114, 38, .28); }
+
+/* Cartes */
+.m2c-capjs-card {
+  margin-top: 18px;
+  padding: clamp(22px, 3vw, 36px);
+  border: 1px solid var(--m2c-line);
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 10px 32px rgba(29, 29, 27, .035);
+}
+.m2c-capjs-card__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 18px; }
+.m2c-capjs-card h2 { margin: 6px 0 0; padding: 0; color: var(--m2c-ink); font-size: 24px; line-height: 1.2; letter-spacing: -.03em; }
+.m2c-capjs-lead { max-width: 720px; margin: 14px 0 0; color: var(--m2c-muted); font-size: 14px; line-height: 1.6; }
+
+/* Pastilles d'état et messages */
+.m2c-capjs-badge { display: inline-block; padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 700; line-height: 1.3; }
+.m2c-capjs-badge--success { background: #d6f0dd; color: var(--m2c-ok); }
+.m2c-capjs-badge--warning { background: #ffe2b8; color: #5c3200; }
+.m2c-capjs-badge--error { background: #fcd9d9; color: #8a1f1f; }
+.m2c-capjs-badge--info { background: var(--m2c-cream); color: var(--m2c-ink); }
+.m2c-capjs-callout { margin: 16px 0 0; padding: 12px 16px; border-left: 5px solid var(--m2c-ink); border-radius: 10px; background: var(--m2c-cream); }
+.m2c-capjs-callout p { margin: 0; }
+.m2c-capjs-callout--success { border-color: var(--m2c-ok); }
+.m2c-capjs-callout--warning { border-color: var(--m2c-orange); background: #fff7ee; }
+.m2c-capjs-callout--error { border-color: var(--m2c-error); background: #fdf0f0; }
+.m2c-capjs .notice { margin: 16px 0 0; border-radius: 10px; }
+
+/* Détails de la licence */
+.m2c-capjs-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px 28px; margin: 22px 0 0; padding: 20px 0 0; border-top: 1px solid var(--m2c-line); }
+.m2c-capjs-details dt { margin: 0 0 3px; color: var(--m2c-muted); font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.m2c-capjs-details dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+
+/* Champs */
+.m2c-capjs-field { margin: 22px 0 0; }
+.m2c-capjs-field label, .m2c-capjs-label { display: block; margin: 0 0 7px; font-size: 14px; font-weight: 700; }
+.m2c-capjs input[type="url"], .m2c-capjs input[type="text"], .m2c-capjs textarea {
+  display: block;
+  width: 100%;
+  max-width: 640px;
+  min-height: 44px;
+  padding: 9px 14px;
+  border: 1px solid #cfc9bb;
+  border-radius: 12px;
+  background: #fff;
+  color: var(--m2c-ink);
+  box-shadow: none;
+}
+.m2c-capjs textarea { min-height: 96px; font-family: Consolas, Menlo, monospace; line-height: 1.5; }
+.m2c-capjs input[type="url"]:focus, .m2c-capjs input[type="text"]:focus, .m2c-capjs textarea:focus { border-color: var(--m2c-orange); box-shadow: 0 0 0 1px var(--m2c-orange); }
+.m2c-capjs-help { max-width: 640px; margin: 7px 0 0; color: var(--m2c-muted); font-size: 13px; line-height: 1.5; }
+
+/* Cases à cocher (WooCommerce) */
+.m2c-capjs-options { margin: 18px 0 0; padding: 0; border: 0; }
+.m2c-capjs-option { display: flex; align-items: flex-start; gap: 14px; padding: 16px 4px; border-top: 1px solid var(--m2c-line); cursor: pointer; }
+.m2c-capjs-option strong { display: block; font-size: 14px; }
+.m2c-capjs-option small { display: block; margin-top: 3px; color: var(--m2c-muted); font-size: 13px; line-height: 1.5; }
+.m2c-capjs .screen-reader-text { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; border: 0; clip-path: inset(50%); white-space: nowrap; }
+.m2c-capjs input[type="checkbox"] { flex: none; -webkit-appearance: none; appearance: none; width: 22px; height: 22px; min-width: 22px; margin: 1px 0 0; padding: 0; border: 2px solid var(--m2c-ink); border-radius: 6px; background: #fff; box-shadow: none; }
+.m2c-capjs input[type="checkbox"]:checked { background: var(--m2c-orange); }
+.m2c-capjs input[type="checkbox"]:checked::before { content: ""; float: none; display: block; width: 5px; height: 10px; margin: 2px 0 0 6px; border: solid #000; border-width: 0 2.5px 2.5px 0; transform: rotate(45deg); }
+
+/* Boutons */
+.m2c-capjs .button { min-height: 40px; padding: 5px 20px; border-width: 1px; border-style: solid; border-color: var(--m2c-ink); border-radius: 100px; background: #fff; color: var(--m2c-ink); font-family: inherit; font-size: 14px; font-weight: 650; line-height: 28px; box-shadow: none; }
+.m2c-capjs .button:hover { border-color: var(--m2c-orange-dark); background: #fff7f0; color: var(--m2c-orange-dark); }
+.m2c-capjs .button-primary, .m2c-capjs .button-primary:hover { border-color: var(--m2c-orange); background: var(--m2c-orange); color: #000; }
+.m2c-capjs .button-primary:hover { border-color: #ff9b54; background: #ff9b54; }
+.m2c-capjs .button--danger { border-color: var(--m2c-error); color: var(--m2c-error); }
+.m2c-capjs .button--danger:hover { border-color: var(--m2c-error); background: #fdf0f0; color: var(--m2c-error); }
+.m2c-capjs-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 20px 0 0; }
+.m2c-capjs-actions form { margin: 0; }
+.m2c-capjs-save { display: flex; justify-content: flex-end; margin: 18px 0 8px; }
+
+/* Ce que couvre la licence */
+.m2c-capjs-more { margin: 24px 0 0; padding: 14px 18px; border-radius: 14px; background: var(--m2c-cream); }
+.m2c-capjs-more summary { cursor: pointer; font-weight: 700; }
+.m2c-capjs-more ul { margin: 12px 0 2px; padding-left: 20px; list-style: disc; }
+.m2c-capjs-more li { margin: 7px 0; line-height: 1.6; }
+
+@media (max-width: 600px) {
+  .m2c-capjs-hero { min-height: 170px; border-radius: 18px; }
+  .m2c-capjs-hero-mark { right: -5px; bottom: -36px; font-size: 130px; }
+  .m2c-capjs-card { border-radius: 16px; }
+  .m2c-capjs-actions .button, .m2c-capjs-save .button { flex: 1; text-align: center; }
+  .m2c-capjs-save { justify-content: stretch; }
+}
