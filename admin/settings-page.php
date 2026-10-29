@@ -27,6 +27,8 @@ function m2c_capjs_settings_page() {
     ?>
     <div class="wrap">
         <h1>Paramètres CapJS</h1>
+        <?php m2c_capjs_license_section(); ?>
+        <h2>Serveur CapJS</h2>
         <form method="post" action="options.php">
             <?php settings_fields('m2c_capjs_options'); ?>
             <table class="form-table">

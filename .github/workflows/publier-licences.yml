@@ -1,7 +1,7 @@
 # À la publication d'une release, construit l'archive de l'extension (dossier m2c_wpcapjs/ à la racine) et
-# l'envoie au serveur de licences mak2com (M2C Licences), qui la propose aux sites. Aucune licence : l'extension
-# est servie à tous les sites. Secret requis : M2C_LICENCES_TOKEN (jeton de publication du produit,
-# fiche du produit sur https://licences.mak2com.fr).
+# l'envoie au serveur de licences mak2com (M2C Licences), qui la propose aux sites sous licence valide.
+# Secret requis : M2C_LICENCES_TOKEN (jeton de publication du produit, fiche du produit sur
+# https://licences.mak2com.fr).
 name: Publier sur M2C Licences
 
 on:
@@ -37,6 +37,11 @@ jobs:
           version=$(sed -n 's/^Version:[[:space:]]*//p' m2c-wpcapjs.php | head -n 1 | tr -d '\r')
           if [ "$version" != "${TAG#v}" ]; then
             echo "::error::Version de m2c-wpcapjs.php ($version) différente du tag $TAG"
+            exit 1
+          fi
+          # La clé publique du produit doit être renseignée (fiche du produit sur M2C Licences) : sinon aucune licence ne serait reconnue.
+          if grep -q 'REMPLACER_PAR' includes/license.php; then
+            echo "::error::Clé publique de licence non renseignée dans includes/license.php"
             exit 1
           fi
           # Fichiers de développement exclus par .gitattributes (export-ignore).

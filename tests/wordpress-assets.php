@@ -15,6 +15,10 @@ $wp_plugin_paths=[];
 require ABSPATH.'wp-includes/plugin.php';
 foreach(['class-wp-dependency.php','class-wp-dependencies.php','class-wp-scripts.php','functions.wp-scripts.php'] as $file) require ABSPATH.'wp-includes/'.$file;
 function get_option($name,$default=false) {return ['m2c_capjs_version'=>'1.4.1','m2c_capjs_server_url'=>'https://captcha.example.test','m2c_capjs_site_key'=>'fixture'][$name]??$default;}
+define('DAY_IN_SECONDS',86400);
+function update_option($name,$value,$autoload=null) {return true;}
+function home_url() {return 'https://site.example.test';}
+function wp_parse_url($url,$component=-1) {return parse_url($url,$component);}
 function determine_locale() {return 'es_ES';}
 function plugins_url(...$args) {return 'https://site.example.test/plugin/';}
 function wp_normalize_path($value) {return str_replace('\\','/',$value);}

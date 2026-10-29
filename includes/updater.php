@@ -5,9 +5,9 @@ if (!defined('ABSPATH')) exit;
  * Mises à jour depuis M2C Licences (https://licences.mak2com.fr), sans bibliothèque :
  * le format est celui de plugin-update-checker, servi par deux filtres WordPress et un cache.
  *
- * Aucune clé de licence : l'extension n'est ni vendue ni limitée, le serveur sert seulement à
- * diffuser les nouvelles versions aux sites. Le serveur reçoit l'adresse du site (hôte) et les versions
- * de l'extension, de WordPress et de PHP ; rien d'autre, jamais de réglage CapJS.
+ * Les mises à jour sont réservées aux sites sous licence valide (includes/license.php) : le serveur reçoit
+ * la clé de licence, l'adresse du site (hôte) et les versions de l'extension, de WordPress et de PHP ;
+ * rien d'autre, jamais de réglage CapJS. Sans licence valide, aucun appel n'est fait.
  *
  * Une panne ou une absence de réponse du serveur ne change rien au fonctionnement du site.
  *
@@ -50,6 +50,9 @@ function m2c_capjs_update_remote($force = false) {
     $update_url = m2c_capjs_update_url();
     if (m2c_capjs_updates_disabled() || '' === $update_url) return null;
 
+    $license_key = m2c_capjs_license_key();
+    if ('' === $license_key || !m2c_capjs_license_premium()) return null;
+
     $cached = get_site_transient(M2C_CAPJS_UPDATE_TRANSIENT);
     if (!$force && is_array($cached)) {
         return isset($cached['data']) ? $cached['data'] : null;
@@ -60,6 +63,7 @@ function m2c_capjs_update_remote($force = false) {
             array(
                 'action'  => 'get_metadata',
                 'slug'    => M2C_CAPJS_UPDATE_SLUG,
+                'license' => $license_key,
                 'site'    => m2c_capjs_update_host(),
                 'version' => M2C_CAPJS_VERSION,
                 'wp'      => get_bloginfo('version'),
