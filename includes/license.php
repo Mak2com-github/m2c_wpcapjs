@@ -34,7 +34,7 @@ define('M2C_CAPJS_LICENSE_OPTION', 'm2c_capjs_license');
  * Tant que la valeur est celle d'attente, aucune clé n'est reconnue et la publication est refusée par l'action GitHub.
  */
 function m2c_capjs_license_public_key() {
-    return 'REMPLACER_PAR_LA_CLE_PUBLIQUE_DU_PRODUIT';
+    return 'R2/XHnfAO4nMxY4wOfp+J/cadr9t9o2f8sbD0eOyrVM=';
 }
 
 function m2c_capjs_license_stored() {
