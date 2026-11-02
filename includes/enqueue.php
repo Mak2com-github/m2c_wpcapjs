@@ -52,7 +52,7 @@ function m2c_capjs_enqueue_widget() {
         'capjs-custom',
         plugin_dir_url(dirname(__FILE__)) . 'assets/js/capjs-custom.js',
         array('capjs-widget'),
-        '1.2.2',
+        '1.3.0',
         true
     );
 
