@@ -8,6 +8,11 @@
   };
 
   var config = window.capjsCustomConfig || {};
+
+  // Le widget transmet l'adresse de la page, le domaine et le référent à trycap.dev quand on clique sur son lien
+  // « Cap » : on ne le laisse pas faire (option publique du widget, lue au moment du clic).
+  window.CAP_DISABLE_WIDGET_REF = true;
+
   var TRANSLATIONS = {
     "I'm a human": config.humanLabel || '',
     "Verify you're human": config.humanLabel || '',
@@ -46,14 +51,31 @@
     }
   }
 
+  // Lien « Secured by Cap » du widget : il s'ouvre dans un nouvel onglet sans le dire, et son nom accessible est en
+  // anglais. Le nom visible reste « Cap » (contenu dans le nouveau nom, RGAA 6.1 et 13.2). Le widget remet de force
+  // l'adresse, le texte et le style du lien, jamais ces attributs.
+  function fixCredits(root) {
+    if (!config.creditsLabel || !root.querySelectorAll) return;
+    var links = root.querySelectorAll('a.credits');
+    for (var i = 0; i < links.length; i++) {
+      var link = links[i];
+      // Pas d'écriture inutile : une valeur identique ne doit pas relancer les MutationObserver.
+      if (link.getAttribute('aria-label') !== config.creditsLabel) link.setAttribute('aria-label', config.creditsLabel);
+      if (link.getAttribute('title') !== config.creditsLabel) link.setAttribute('title', config.creditsLabel);
+      if (link.getAttribute('rel') !== 'noopener noreferrer') link.setAttribute('rel', 'noopener noreferrer');
+    }
+  }
+
   function translateElement(element) {
     translateTree(element);
 
     if (element.shadowRoot) {
       translateTree(element.shadowRoot);
+      fixCredits(element.shadowRoot);
 
       var shadowObserver = new MutationObserver(function() {
         translateTree(element.shadowRoot);
+        fixCredits(element.shadowRoot);
       });
       shadowObserver.observe(element.shadowRoot, {
         childList: true,

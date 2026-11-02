@@ -107,8 +107,9 @@ function license_statement($status='active',$overrides=[]) { return sign_payload
 require "$plugin_copy/m2c-wpcapjs.php";
 do_action('plugins_loaded');
 do_action('init');
-check(count($registered_strings)===3,'trois chaînes enregistrées sans visiter de formulaire');
-check(array_keys($registered_strings)===['widget_human_label','verification_complete','verification_failed'],'identifiants WPML historiques conservés');
+check(count($registered_strings)===4,'quatre chaînes enregistrées sans visiter de formulaire');
+check(array_keys($registered_strings)===['widget_human_label','verification_complete','verification_failed','credits_label'],'identifiants WPML historiques conservés, libellé du lien Cap ajouté');
+check(m2c_capjs_get_widget_strings()['creditsLabel']==='Sécurisé par Cap (s’ouvre dans une nouvelle fenêtre)'&&str_contains(m2c_capjs_get_widget_strings()['creditsLabel'],'Cap'),'lien Cap : nom accessible français signalant la nouvelle fenêtre et contenant le texte visible');
 check($registered_strings['widget_human_label'][0]==='capjs-integration','contexte WPML conservé');
 check(array_values(array_unique($option_writes))==['m2c_capjs_license','m2c_capjs_version'],'à la mise à jour, seuls la licence (délai de reprise) et la version sont écrits : aucun réglage existant modifié');
 check(($options['m2c_capjs_license']['grace_until']??0)>time()+29*86400&&$options['m2c_capjs_license']['grace_until']<=time()+30*86400&&$options['m2c_capjs_version']==='2.0.0','installation configurée avant la licence : délai de reprise de 30 jours');
@@ -116,7 +117,7 @@ check(m2c_capjs_get_widget_strings()['humanLabel']==='Je suis un humain','libell
 foreach(['fr_FR'=>'fr','es_ES'=>'es','en-US'=>'en','pt_BR'=>'pt',''=>'fr'] as $value=>$expected) {$locale=$value; check(m2c_capjs_get_widget_language()===$expected,'repli de locale '.$value);}
 $locale='fr_FR';
 add_filter('wpml_current_language',function($default) use (&$wpml_language){return $wpml_language;});
-$translations=['widget_human_label'=>'Soy humano','verification_complete'=>'Verificación completada','verification_failed'=>'Error de verificación'];
+$translations=['widget_human_label'=>'Soy humano','verification_complete'=>'Verificación completada','verification_failed'=>'Error de verificación','credits_label'=>'Protegido por Cap (se abre en una ventana nueva)'];
 add_filter('wpml_translate_single_string',function($default,$context,$name) use (&$translations){return $translations[$name]??$default;},10,3);
 $wpml_language='es';
 check(m2c_capjs_get_widget_language()==='es','langue WPML prioritaire sur la locale');
@@ -133,6 +134,7 @@ check($scripts['capjs-cf7']['deps']===['jquery','capjs-widget'],'ordre CF7/widge
 check($scripts['capjs-custom']['deps']===['capjs-widget'],'ordre traduction/widget explicite');
 check($scripts['capjs-cf7']['data']['capjsCF7Config']['language']==='es','langue transmise au JS CF7');
 check($scripts['capjs-custom']['data']['capjsCustomConfig']['humanLabel']==='Soy humano','traduction transmise au script de secours');
+check($scripts['capjs-custom']['data']['capjsCustomConfig']['creditsLabel']==='Protegido por Cap (se abre en una ventana nueva)','libellé du lien Cap traduit et transmis au script');
 check($scripts['capjs-cf7']['data']['capjsCF7Config']['verificationFailed']==='Error de verificación','état erreur traduit');
 foreach($scripts as $handle=>$script) check($script['footer']===true,$handle.' reste en pied de page pour FSE');
 $first_scripts=$scripts; m2c_capjs_form_tag_handler($tag);
@@ -193,7 +195,8 @@ $_POST=['capjs_wc_token'=>'fixture'];$remote_success=false;$errors=$wc->validate
 $remote_success=true;$errors=$wc->validate_capjs_registration(new WP_Error(),'','');check($errors->errors===[],'WooCommerce accepte un token validé');
 
 // Mises à jour depuis M2C Licences : sans clé de licence, réponses simulées, aucun accès réseau.
-$main=file_get_contents(dirname(__DIR__).'/m2c-wpcapjs.php'); $readme=file_get_contents(dirname(__DIR__).'/readme.txt');
+$main=file_get_contents(dirname(__DIR__).'/m2c-wpcapjs.php'); $readme=str_replace("\r\n","\n",file_get_contents(dirname(__DIR__).'/readme.txt')); // copie de travail Windows en CRLF, archive Git en LF
+
 preg_match('/^Version:\s*(\S+)/m',$main,$header_version); preg_match('/^Stable tag:\s*(\S+)/m',$readme,$stable_tag);
 check($header_version[1]===M2C_CAPJS_VERSION&&$stable_tag[1]===M2C_CAPJS_VERSION,'version identique : en-tête, constante et Stable tag du readme.txt (M2C Licences refuse sinon l’archive)');
 check(str_contains($readme,"== Changelog ==\n\n= ".M2C_CAPJS_VERSION.' ='),'journal des modifications du readme.txt à jour');
