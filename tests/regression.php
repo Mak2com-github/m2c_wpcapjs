@@ -42,7 +42,11 @@ function is_user_logged_in() { return false; }
 function check($condition,$label) { global $count; if (!$condition) throw new Exception('ÉCHEC : '.$label); $count++; }
 function reset_assets() { global $scripts,$styles; $scripts=$styles=[]; }
 function capture($callback) { ob_start(); $callback(); return ob_get_clean(); }
-class WP_Error { public $errors=[]; function add($code,$message) {$this->errors[$code][]=$message;} }
+class WP_Error { public $errors=[]; function add($code,$message) {$this->errors[$code][]=$message;} function get_error_message() { return 'erreur simulée'; } }
+function add_shortcode($tag,$callback) { global $shortcodes; $shortcodes[$tag]=$callback; }
+function shortcode_atts($defaults,$atts,$shortcode='') { return array_merge($defaults,array_intersect_key((array)$atts,$defaults)); }
+function wp_unique_id($prefix='') { static $i=0; return $prefix.(++$i); }
+function sanitize_html_class($value) { return preg_replace('/[^A-Za-z0-9_-]/','',$value); }
 class WPCF7 {}
 class WPCF7_Service {}
 class WPCF7_Submission { static function get_instance() {return false;} }
@@ -169,9 +173,31 @@ check(str_contains($template,'Soy &quot;humano&quot; &lt;seguro&gt;'),'échappem
 $html=capture([$wc,'display_capjs_login']);
 check(str_contains($html,'Soy &quot;humano&quot; &lt;seguro&gt;'),'échappement des traductions dans WooCommerce');
 
+// Formulaires codés en dur : shortcode [capjs_widget] et m2c_capjs_verify_request().
+check(isset($shortcodes['capjs_widget']),'shortcode [capjs_widget] enregistré');
+reset_assets(); $html=$shortcodes['capjs_widget']([]); $html_next=$shortcodes['capjs_widget']([]);
+check(str_contains($html,'<cap-widget')&&str_contains($html,'/public-fixture/"')&&str_contains($html,'data-cap-lang="es"')&&str_contains($html,'data-cap-i18n-initial-state="Soy &quot;humano&quot; &lt;seguro&gt;"'),'shortcode : widget, clé du site, langue et traductions échappées');
+check(isset($scripts['capjs-widget'])&&isset($scripts['capjs-custom'])&&$scripts['capjs-widget']['footer']===true,'shortcode : scripts chargés en pied de page');
+preg_match('/ id="([^"]+)"/',$html,$id_a); preg_match('/ id="([^"]+)"/',$html_next,$id_b);
+check($id_a[1]!==$id_b[1],'shortcode : identifiants uniques pour deux widgets');
+check(str_contains($shortcodes['capjs_widget'](['id'=>'mon widget<x>']),' id="monwidgetx"'),'shortcode : identifiant personnalisé nettoyé');
+ini_set('error_log',DIRECTORY_SEPARATOR==='\\'?'NUL':'/dev/null');
+$_POST=[]; $before=$remote_calls; check(m2c_capjs_verify_request()===false&&$remote_calls===$before,'formulaire codé en dur : jeton absent refusé sans appel au serveur');
+$_POST=['cap-token'=>'jeton']; $remote_success=false; check(m2c_capjs_verify_request()===false,'formulaire codé en dur : jeton invalide refusé');
+$remote_success=true; check(m2c_capjs_verify_request()===true,'formulaire codé en dur : jeton valide accepté');
+$_POST=['mon-champ'=>'jeton']; check(m2c_capjs_verify_request('mon-champ')===true&&m2c_capjs_verify_request()===false,'formulaire codé en dur : nom de champ personnalisé');
+$_POST=['cap-token'=>'jeton'];
+$post_handler=fn($url,$request)=>new WP_Error(); check(m2c_capjs_verify_request()===false,'formulaire codé en dur : serveur injoignable, refusé');
+$post_handler=fn($url,$request)=>['response'=>['code'=>500],'body'=>'']; check(m2c_capjs_verify_request()===false,'formulaire codé en dur : erreur HTTP du serveur, refusé');
+$post_handler=fn($url,$request)=>['response'=>['code'=>200],'body'=>'pas du json']; check(m2c_capjs_verify_request()===false,'formulaire codé en dur : réponse illisible, refusé');
+$post_calls=[]; $post_handler=fn($url,$request)=>['response'=>['code'=>200],'body'=>json_encode(['success'=>true])];
+check(m2c_capjs_verify_request()===true&&str_ends_with($post_calls[0][0],'/public-fixture/siteverify')&&json_decode($post_calls[0][1]['body'],true)['response']==='jeton'&&array_key_exists('secret',json_decode($post_calls[0][1]['body'],true)),'formulaire codé en dur : requête siteverify conforme');
+$post_handler=null; $post_calls=[]; $_POST=[]; $remote_calls=0; // compteur remis à zéro pour les contrôles suivants
+
 $configured=$options; unset($options['m2c_capjs_site_key']);reset_assets();
 check(m2c_capjs_form_tag_handler($tag)==='','CF7 non configuré sans rendu');
 check(capture([$wc,'display_capjs_login'])==='','WooCommerce non configuré sans rendu');
+$_POST=[]; check($shortcodes['capjs_widget']([])===''&&$scripts===[]&&m2c_capjs_verify_request()===true,'shortcode non configuré : rien affiché, formulaire non bloqué');
 $field->localize_settings(['label_visibility'=>'visible','label'=>'Test'],[]);
 check($scripts===[],'Ninja Forms non configuré sans scripts');
 check($field->validate(['value'=>''],[])===false,'comportement Ninja Forms non configuré conservé');
@@ -205,11 +231,11 @@ check(m2c_capjs_update_url()==='https://licences.mak2com.fr/updates/','serveur d
 check(m2c_capjs_update_host()==='site.example.test','hôte transmis : minuscules, sans www ni chemin');
 $options['m2c_capjs_license']['key']='M2CCJ-fixture'; m2c_capjs_license_reset_cache();
 
-$metadata=['name'=>'CapJS Integration by Mak2com','slug'=>'m2c_wpcapjs','version'=>'2.1.0','download_url'=>'https://licences.mak2com.fr/updates/?action=download&slug=m2c_wpcapjs&site=site.example.test','homepage'=>'https://mak2com.fr','requires'=>'6.0','tested'=>'6.8','requires_php'=>'8.0','last_updated'=>'2026-10-23 10:00:00','sections'=>['description'=>'<p>Captcha</p><script>x()</script>','changelog'=>'<h4>2.1.0</h4><ul><li>Test</li></ul>']];
+$metadata=['name'=>'CapJS Integration by Mak2com','slug'=>'m2c_wpcapjs','version'=>'2.2.0','download_url'=>'https://licences.mak2com.fr/updates/?action=download&slug=m2c_wpcapjs&site=site.example.test','homepage'=>'https://mak2com.fr','requires'=>'6.0','tested'=>'6.8','requires_php'=>'8.0','last_updated'=>'2026-10-23 10:00:00','sections'=>['description'=>'<p>Captcha</p><script>x()</script>','changelog'=>'<h4>2.2.0</h4><ul><li>Test</li></ul>']];
 $answer=fn($data)=>['response'=>['code'=>200],'body'=>json_encode($data)];
 $remote_get_response=$answer($metadata);
 $remote=m2c_capjs_update_remote();
-check($remote['version']==='2.1.0','métadonnées lues'); check(count($remote_get_calls)===1,'un seul appel');
+check($remote['version']==='2.2.0','métadonnées lues'); check(count($remote_get_calls)===1,'un seul appel');
 parse_str(parse_url($remote_get_calls[0],PHP_URL_QUERY),$sent);
 check($sent==['action'=>'get_metadata','slug'=>'m2c_wpcapjs','license'=>'M2CCJ-fixture','site'=>'site.example.test','version'=>M2C_CAPJS_VERSION,'wp'=>'6.8.1','php'=>PHP_VERSION],'requête : produit, licence, site, versions seulement');
 check(!str_contains($remote_get_calls[0],'site_key')&&!str_contains($remote_get_calls[0],'secret')&&!str_contains($remote_get_calls[0],'public-fixture'),'aucun réglage CapJS transmis');
@@ -220,7 +246,7 @@ m2c_capjs_update_remote(true); check(count($remote_get_calls)===2,'vérification
 // Proposition de la mise à jour à WordPress.
 $plugin='m2c_wpcapjs/m2c-wpcapjs.php';
 $offered=m2c_capjs_update_inject((object)['response'=>[],'no_update'=>[]]);
-check($offered->response[$plugin]->new_version==='2.1.0'&&$offered->response[$plugin]->package===$metadata['download_url'],'mise à jour proposée avec son archive');
+check($offered->response[$plugin]->new_version==='2.2.0'&&$offered->response[$plugin]->package===$metadata['download_url'],'mise à jour proposée avec son archive');
 check($offered->response[$plugin]->plugin===$plugin&&$offered->response[$plugin]->slug==='m2c_wpcapjs'&&$offered->response[$plugin]->requires_php==='8.0','élément conforme à WordPress');
 check(!isset($offered->no_update[$plugin]),'proposée : absente de no_update');
 check(isset(m2c_capjs_update_inject((object)[])->response[$plugin]),'transient sans tableaux : initialisés');
@@ -236,7 +262,7 @@ m2c_capjs_update_clear_cache(); $remote_get_response=$answer($metadata);
 check(m2c_capjs_update_details('x','plugin_information',(object)['slug'=>'autre'])==='x','détails d’un autre produit ignorés');
 check(m2c_capjs_update_details('x','query_plugins',(object)['slug'=>'m2c_wpcapjs'])==='x','autre action ignorée');
 $details=m2c_capjs_update_details(false,'plugin_information',(object)['slug'=>'m2c_wpcapjs']);
-check($details->version==='2.1.0'&&$details->download_link===$metadata['download_url']&&str_contains($details->sections['changelog'],'<h4>2.1.0</h4>'),'détails de la version');
+check($details->version==='2.2.0'&&$details->download_link===$metadata['download_url']&&str_contains($details->sections['changelog'],'<h4>2.2.0</h4>'),'détails de la version');
 check(!str_contains($details->sections['description'],'<script'),'sections assainies');
 
 // Réponses refusées : mauvaise version, archive ailleurs que sur le serveur, champs absents, erreur réseau ou HTTP.
@@ -251,7 +277,7 @@ foreach(['erreur réseau'=>new WP_Error(),'HTTP 403'=>['response'=>['code'=>403]
 // Autre serveur (essais) : l'archive doit venir du même hôte.
 $update_url_override='http://127.0.0.1:8090/updates/'; add_filter('m2c_capjs_update_url',function($url) use (&$update_url_override){return $update_url_override;});
 m2c_capjs_update_clear_cache(); $remote_get_response=$answer(['download_url'=>'http://127.0.0.1:8090/updates/?action=download&slug=m2c_wpcapjs']+$metadata);
-check(m2c_capjs_update_remote()['version']==='2.1.0'&&str_starts_with($remote_get_calls[count($remote_get_calls)-1],'http://127.0.0.1:8090/updates/?'),'serveur d’essai accepté');
+check(m2c_capjs_update_remote()['version']==='2.2.0'&&str_starts_with($remote_get_calls[count($remote_get_calls)-1],'http://127.0.0.1:8090/updates/?'),'serveur d’essai accepté');
 m2c_capjs_update_clear_cache(); $remote_get_response=$answer($metadata); check(m2c_capjs_update_remote()===null,'archive d’un autre hôte que le serveur d’essai refusée');
 $update_url_override='https://licences.mak2com.fr/updates/'; m2c_capjs_update_clear_cache();
 
@@ -306,6 +332,7 @@ check(m2c_capjs_form_tag_handler($tag)===''&&capture([$wc,'display_capjs_login']
 m2c_capjs_enqueue_widget(); do_action('wp_enqueue_scripts'); check($scripts===[]&&$styles===[],'ni script ni style de contraste sans licence');
 check($field->validate(['value'=>''],[])===false,'Ninja Forms : formulaire non bloqué sans licence');
 $_POST=[]; check(m2c_capjs_verify_response(false,new FixtureSubmission(new FixtureForm('[text name] [capjs]')))===false,'Contact Form 7 : formulaire non bloqué sans licence');
+check($shortcodes['capjs_widget']([])===''&&m2c_capjs_verify_request()===true&&$scripts===[],'sans clé : shortcode vide, formulaire codé en dur non bloqué');
 check($post_calls===[],'aucune requête vers le serveur de licences sans clé');
 $notice=capture(fn()=>do_action('admin_notices'));
 check(str_contains($notice,'notice-error')&&str_contains($notice,'captcha est désactivé')&&str_contains($notice,'m2c-capjs#m2c-capjs-licence'),'avertissement dans l’administration : captcha désactivé');
@@ -326,6 +353,7 @@ $options['m2c_capjs_license']=['key'=>license_key(['expires'=>date('Y-m-d',strto
 check($state()==='ended:expired'&&!m2c_capjs_license_runs()&&!m2c_capjs_license_premium(),'licence expirée : captcha désactivé, mises à jour arrêtées');
 reset_assets(); check(!$cf7->is_active()&&!$wc->is_active()&&m2c_capjs_form_tag_handler($tag)===''&&capture([$wc,'display_capjs_login'])===''&&$scripts===[],'licence expirée : aucun widget ni script');
 check($field->validate(['value'=>''],[])===false&&m2c_capjs_verify_response(false,new FixtureSubmission(new FixtureForm('[text name] [capjs]')))===false,'licence expirée : Ninja Forms et Contact Form 7 ne bloquent pas les formulaires');
+$_POST=[]; check($shortcodes['capjs_widget']([])===''&&m2c_capjs_verify_request()===true&&$scripts===[],'licence expirée : shortcode vide et formulaire codé en dur non bloqué');
 $notice=capture(fn()=>do_action('admin_notices')); check(str_contains($notice,'notice-error')&&str_contains($notice,'Licence expirée'),'licence expirée : avertissement dans l’administration');
 $options['m2c_capjs_license']=['key'=>$good]; check($state()==='valid'&&m2c_capjs_license_runs()&&$cf7->is_active(),'licence renouvelée (nouvelle clé) : captcha rétabli');
 $home_url='https://autre.fr/'; $options['m2c_capjs_license']=['key'=>$good]; check($state()==='ended:domain_mismatch'&&!m2c_capjs_license_runs(),'autre domaine : captcha désactivé');
