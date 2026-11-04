@@ -2,7 +2,7 @@
 Contributors: mak2com
 Requires at least: 6.0
 Requires PHP: 8.0
-Stable tag: 2.0.2
+Stable tag: 2.1.0
 
 Intègre le captcha CapJS (auto-hébergé) sur les formulaires WordPress : Ninja Forms, Contact Form 7 et WooCommerce.
 
@@ -15,6 +15,9 @@ L'extension est fournie sous licence mak2com : la clé se génère sur licences.
 Le serveur de licences reçoit la clé, l'adresse du site et les versions de l'extension, de WordPress et de PHP, au plus une fois par semaine. Pour ne jamais le contacter pour les mises à jour : define( 'M2C_CAPJS_DISABLE_UPDATES', true ); dans wp-config.php.
 
 == Changelog ==
+
+= 2.1.0 =
+* Formulaires codés en dur (modèles du thème, blocs HTML, constructeurs de pages) : le shortcode [capjs_widget] affiche le widget CapJS dans le formulaire (même configuration, mêmes traductions WPML et mêmes scripts en pied de page que les autres intégrations), et la fonction m2c_capjs_verify_request() vérifie le jeton dans le traitement du formulaire. Comme ailleurs, sans configuration ou sans licence valide, le widget n'est pas affiché et la vérification réussit : le formulaire reste utilisable sans captcha.
 
 = 2.0.2 =
 * Accessibilité : le lien « Cap » du widget (vers trycap.dev), qui s'ouvre dans un nouvel onglet, le signale désormais dans son nom accessible et son titre (« Sécurisé par Cap (s'ouvre dans une nouvelle fenêtre) », traduisible dans WPML : chaîne credits_label du contexte capjs-integration) ; il portait un libellé anglais sans aucune indication.

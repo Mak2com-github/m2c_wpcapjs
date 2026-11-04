@@ -51,6 +51,25 @@ php -d extension=sodium tests/wordpress-assets.php D:/Dev/ecovance
 
 ---
 
+## Formulaires codés en dur (2.1.0)
+
+Pour un formulaire qui n'est ni Ninja Forms, ni Contact Form 7, ni WooCommerce (modèle du thème, bloc HTML, constructeur de pages), deux éléments, avec la même configuration que les autres intégrations (Réglages → CapJS : serveur, clé du site, clé secrète) :
+
+1. **Afficher le widget** dans le `<form>` : shortcode `[capjs_widget]` (ou `[capjs_widget id="mon-widget"]`), ou en PHP `echo m2c_capjs_render_widget();`. Le widget ajoute lui-même un champ caché `cap-token` au formulaire quand la vérification est terminée. Les scripts se chargent en pied de page, uniquement sur les pages qui affichent le widget ; les libellés viennent de WPML comme ailleurs.
+2. **Vérifier le jeton dans le traitement du formulaire**, avant toute action (le nonce du formulaire reste à votre charge) :
+
+   ```php
+   if ( ! m2c_capjs_verify_request() ) {
+       // Afficher « Veuillez valider le captcha. » et s'arrêter.
+   }
+   ```
+
+   `m2c_capjs_verify_request( 'autre-champ' )` lit un autre nom de champ ; `m2c_capjs_verify_token( $jeton )` vérifie un jeton déjà récupéré (formulaire envoyé en AJAX). Un jeton est à usage unique : ne le vérifier qu'une fois.
+
+**Règle de CapJS** : sans configuration ou sans licence valide, le captcha est désactivé, donc le widget n'est pas affiché **et** `m2c_capjs_verify_request()` renvoie `true` : le formulaire reste utilisable sans captcha. Une erreur du serveur CapJS ou une réponse illisible refuse le jeton (comme pour les autres intégrations). Le shortcode ne traite pas le formulaire : sans l'appel de l'étape 2, le captcha n'a aucun effet.
+
+---
+
 ## Version 1.4.2 — adaptations intégrées
 
 Les adaptations développées pour EcoVance font désormais partie du code du plugin : langue du widget, traductions des trois libellés et chargement conditionnel pour Contact Form 7, Ninja Forms et WooCommerce. La bordure de case contrastée est également incluse. Version préparée localement, sans publication automatique.
